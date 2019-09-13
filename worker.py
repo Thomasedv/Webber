@@ -11,6 +11,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
+from utils import get_logger
+
 progress_pattern = re.compile(
     r'(frame|fps|size|time|bitrate|speed)\s*\=\s*(\S+)'
 )
@@ -21,11 +23,12 @@ class Conversion(QThread):
 
     def __init__(self, commands: list, target_name, file_name, duration):
         super(Conversion, self).__init__()
+
         self.name = target_name
-        print(target_name)
         self.file_name = file_name
         self.dur = duration
-
+        self._log = get_logger('Webber.Conversion')
+        self._log.info(f'Instanciated with target file {self.name}')
         self.queue = deque(commands)
         try:
             idx = self.queue[0].index('-b:v') + 1
@@ -39,6 +42,7 @@ class Conversion(QThread):
 
     def run(self):
         try:
+            self._log.info('Fetching process framerate..')
             p = QProcess()
             p.start(
                 f'ffprobe "{self.file_name}" -v 0 -of csv=p=0 -select_streams v:0 -show_entries stream=r_frame_rate')
@@ -52,8 +56,9 @@ class Conversion(QThread):
                 framerate = int(x) / int(y)
             except Exception:
                 framerate = float(info)
+            self._log.info(f'Found framerate: {framerate}')
         except Exception:
-            print('Failed to get info!')
+            self._log.error('Failed to get info!')
             framerate = None
 
         cur_pass = 1
@@ -66,6 +71,7 @@ class Conversion(QThread):
             worker.setProcessChannelMode(QProcess.MergedChannels)
             worker.readyReadStandardOutput.connect(lambda *_: self.out_stream(worker, cur_pass, framerate))
             worker.start('ffmpeg', commands)
+            self._log.info(f'Starting process, pass {cur_pass}')
             worker.waitForStarted()
             while not worker.waitForFinished(500):
                 if self.abort:
@@ -74,8 +80,9 @@ class Conversion(QThread):
                     return
             cur_pass += 1
             if worker.exitCode():
-                print('Error for program!')
+                self._log.error(f'Process closed with error code {worker.exitCode()}')
                 return
+        self._log.info('Finished all passes')
         self.current = None
 
     def out_stream(self, prog, cur_pass, framerate):
@@ -120,5 +127,6 @@ class Conversion(QThread):
                          f'Pass: {cur_pass}\n'
 
         except Exception as e:
+            self._log.error(f'Failed formatting with error: {e.with_traceback()}')
             traceback.print_exc()
         self.process_output.emit(output)

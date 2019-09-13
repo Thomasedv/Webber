@@ -41,7 +41,7 @@ class Player(QWidget):
         self.setStyleSheet('background: transparent;')
         self.current = QRect()
 
-    def get_focus(self):
+    def get_cropped_area(self):
         if not self.mediaPlayer.media().isNull():
             if self.begin == self.end == QPoint():
                 return None
