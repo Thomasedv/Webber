@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel,
                              QStackedWidget, QStackedLayout, QGridLayout, QGraphicsScene, QGraphicsView, QProxyStyle,
                              QStyleHintReturn)
 from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
-from PyQt5.QtGui import QIcon, QDesktopServices, QResizeEvent, QShowEvent, QMoveEvent, QCloseEvent
+from PyQt5.QtGui import QIcon, QDesktopServices, QResizeEvent, QShowEvent, QMoveEvent, QCloseEvent, QKeyEvent
 import sys
 
 from screen import Player, QV
@@ -171,6 +171,14 @@ class VideoWindow(QWidget):
             except:
                 traceback.print_exc()
 
+    def skip(self, time_ms):
+        if not self.mediaPlayer.media().isNull():
+            self.mediaPlayer.blockSignals(True)
+            self.mediaPlayer.pause()
+            self.mediaPlayer.setPosition(self.mediaPlayer.position() + time_ms)
+            self.mediaPlayer.play()
+            self.mediaPlayer.blockSignals(False)
+
     def resizeEvent(self, event) -> None:
         super(VideoWindow, self).resizeEvent(event)
         try:
@@ -210,10 +218,10 @@ class VideoWindow(QWidget):
     def showEvent(self, a0: QShowEvent) -> None:
         super(VideoWindow, self).showEvent(a0)
 
-    @pyqtSlot(QMediaPlayer.State)
-    def on_stateChanged(self, state):
-        if state == QMediaPlayer.PlayingState:
-            self._gv.fitInView(self._videoitem, Qt.KeepAspectRatio)
+    # @pyqtSlot(QMediaPlayer.State)
+    # def on_stateChanged(self, state):
+    #     if state == QMediaPlayer.PlayingState:
+    #         self._gv.fitInView(self._videoitem, Qt.KeepAspectRatio)
 
     def play(self):
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
@@ -255,7 +263,6 @@ class VideoWindow(QWidget):
                 self.mediaPlayer.setVolume(self.mediaPlayer.volume() + change // 24)
         else:
             super(VideoWindow, self).wheelEvent(event)
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

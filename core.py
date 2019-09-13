@@ -80,6 +80,7 @@ class GUI(QMainWindow):
         self.cancelbtn.setDisabled(True)
 
         self.mediaplayer = VideoWindow(self)
+        self.mediaplayer.setFocusPolicy(Qt.NoFocus)
         self.mediaplayer.trim_btn.clicked.connect(self.get_start)
         self.mediaplayer.trim2_btn.clicked.connect(self.get_end)
 
@@ -518,5 +519,9 @@ Start: {end_timestamp} ({tf:.3f} seconds)
             self.mediaplayer.play()
         elif event.key() == Qt.Key_M:
             self.mediaplayer.mediaPlayer.setMuted(not self.mediaplayer.mediaPlayer.isMuted())
+        elif event.key() == Qt.Key_Left:
+            self.mediaplayer.skip(-5000)
+        elif event.key() == Qt.Key_Right:
+            self.mediaplayer.skip(5000)
         else:
             super(GUI, self).keyPressEvent(event)

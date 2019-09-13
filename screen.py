@@ -14,6 +14,10 @@ class QV(QGraphicsView):
             self.parent().play()
         return super(QV, self).mousePressEvent(event)
 
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        self.parent().keyPressEvent(event)
+        pass
+
     def wheelEvent(self, event: QWheelEvent) -> None:
         pass
 
