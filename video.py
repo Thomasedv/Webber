@@ -5,14 +5,13 @@ from PyQt5.QtMultimediaWidgets import QVideoWidget, QGraphicsVideoItem
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaResource
 
 
-class QV(QGraphicsView):
+class GraphicsView(QGraphicsView):
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.LeftButton:
             self.parent().play()
-        return super(QV, self).mousePressEvent(event)
+        return super(GraphicsView, self).mousePressEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         self.parent().keyPressEvent(event)
@@ -34,7 +33,7 @@ class QV(QGraphicsView):
             traceback.print_exc()
 
 
-class Player(QWidget):
+class VideoOverlay(QWidget):
     def __init__(self, video: QGraphicsVideoItem, media, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.begin = QPoint()
@@ -92,7 +91,7 @@ class Player(QWidget):
         return QRect()
 
     def paintEvent(self, event):
-        super(Player, self).paintEvent(event)
+        super(VideoOverlay, self).paintEvent(event)
 
         # if self.current != QRect:
         br = QBrush(QColor(250, 250, 250, 70))

@@ -1,6 +1,4 @@
-import json
 import logging
-import os
 import sys
 
 LOG_FILE = 'Webber.log'

@@ -1,19 +1,15 @@
 import os
 import traceback
-from functools import partial
-
-import subprocess
 from collections import deque
 
-from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaResource
-from PyQt5.QtMultimediaWidgets import QVideoWidget
-from player_widget import VideoWindow
-from worker import Conversion
+from PyQt5.QtMultimedia import QMediaContent
+from PyQt5.QtWidgets import *
 
+from player_widget import VideoWindow
 from utils import get_logger, color_text
+from worker import Conversion
 
 
 class GUI(QMainWindow):

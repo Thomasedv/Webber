@@ -1,20 +1,18 @@
 # PyQt5 Video player
 # !/usr/bin/env python
+import sys
 import traceback
 import typing
 
-from PyQt5.QtCore import QDir, Qt, QUrl, QEvent, pyqtSlot, QRectF, QSizeF
-from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
-from PyQt5.QtMultimediaWidgets import QVideoWidget, QGraphicsVideoItem
-from PyQt5.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel,
-                             QPushButton, QSizePolicy, QSlider, QStyle, QVBoxLayout, QWidget, QDesktopWidget,
-                             QStackedWidget, QStackedLayout, QGridLayout, QGraphicsScene, QGraphicsView, QProxyStyle,
-                             QStyleHintReturn)
-from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
-from PyQt5.QtGui import QIcon, QDesktopServices, QResizeEvent, QShowEvent, QMoveEvent, QCloseEvent, QKeyEvent
-import sys
+from PyQt5.QtCore import Qt, QSizeF
+from PyQt5.QtGui import QShowEvent
+from PyQt5.QtMultimedia import QMediaPlayer
+from PyQt5.QtMultimediaWidgets import QGraphicsVideoItem
+from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel,
+                             QSizePolicy, QSlider, QStyle, QVBoxLayout, QGraphicsScene, QProxyStyle)
+from PyQt5.QtWidgets import QWidget, QPushButton
 
-from video import Player, QV
+from video import VideoOverlay, GraphicsView
 
 
 class VideoWindow(QWidget):
@@ -33,8 +31,8 @@ class VideoWindow(QWidget):
 
         self.videoWidget = QGraphicsVideoItem()
         self.videoWidget.setSize(QSizeF(1920, 1080))
-        self.overlay = Player(self.videoWidget, self.mediaPlayer)
-        self._gv = QV(self._scene, parent=self)
+        self.overlay = VideoOverlay(self.videoWidget, self.mediaPlayer)
+        self._gv = GraphicsView(self._scene, parent=self)
         self._gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._scene.addItem(self.videoWidget)
@@ -265,6 +263,7 @@ class VideoWindow(QWidget):
                 self.mediaPlayer.setVolume(self.mediaPlayer.volume() + change // 24)
         else:
             super(VideoWindow, self).wheelEvent(event)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
