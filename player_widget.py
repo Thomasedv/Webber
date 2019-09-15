@@ -3,7 +3,7 @@
 import traceback
 import typing
 
-from PyQt5.QtCore import QDir, Qt, QUrl, QEvent, pyqtSlot, QRectF
+from PyQt5.QtCore import QDir, Qt, QUrl, QEvent, pyqtSlot, QRectF, QSizeF
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
 from PyQt5.QtMultimediaWidgets import QVideoWidget, QGraphicsVideoItem
 from PyQt5.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel,
@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
 from PyQt5.QtGui import QIcon, QDesktopServices, QResizeEvent, QShowEvent, QMoveEvent, QCloseEvent, QKeyEvent
 import sys
 
-from screen import Player, QV
+from video import Player, QV
 
 
 class VideoWindow(QWidget):
@@ -32,6 +32,7 @@ class VideoWindow(QWidget):
         self._scene = QGraphicsScene(self)
 
         self.videoWidget = QGraphicsVideoItem()
+        self.videoWidget.setSize(QSizeF(1920, 1080))
         self.overlay = Player(self.videoWidget, self.mediaPlayer)
         self._gv = QV(self._scene, parent=self)
         self._gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -250,6 +251,7 @@ class VideoWindow(QWidget):
     def setPosition(self, position):
         self.positionSlider.blockSignals(True)
         self.mediaPlayer.setPosition(position)
+        print(self.mediaPlayer.position())
         self.positionSlider.blockSignals(False)
 
     def handleError(self):

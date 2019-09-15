@@ -10,7 +10,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaResource
 from PyQt5.QtMultimediaWidgets import QVideoWidget
-from player import VideoWindow
+from player_widget import VideoWindow
 from worker import Conversion
 
 from utils import get_logger, color_text

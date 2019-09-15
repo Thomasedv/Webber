@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import sys
 
 LOG_FILE = 'Webber.log'
 
@@ -22,6 +23,15 @@ log.addHandler(ch)
 
 def get_logger(string):
     return logging.getLogger(string)
+
+
+def except_hook(cls, exception, traceback):
+    sys.__excepthook__(cls, exception, traceback)
+
+
+# If not frozen as .exe, crashes show here
+if not getattr(sys, 'frozen', False):
+    sys.excepthook = except_hook
 
 
 def color_text(text: str, color: str = 'darkorange', weight: str = 'bold', sections: tuple = None) -> str:
