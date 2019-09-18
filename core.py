@@ -8,23 +8,25 @@ from PyQt5.QtMultimedia import QMediaContent
 from PyQt5.QtWidgets import *
 
 from player_widget import VideoWindow
-from utils import get_logger, color_text
+from utils import get_logger, color_text, FileHandler
 from worker import Conversion
 
 
 class GUI(QMainWindow):
-    def __init__(self, output_folder):
+    def __init__(self):
         super(GUI, self).__init__()
 
         # Internal variables
 
         # TODO: Make settings file, get path from settings
-        self.out_folder = output_folder
         self._debug = False
         self._active_prog = None
         self._resolution = None
         self._queue = deque()
         self._log = get_logger('Webber.MainWindow')
+        self._fh = FileHandler()
+        self._settings = self._fh.load_settings()
+        self.validate_settings()
 
         self.toggle_debug = QShortcut(QKeySequence('Ctrl+P'), self)
         self.toggle_debug.activated.connect(self.debug_switch)
@@ -126,6 +128,22 @@ class GUI(QMainWindow):
 
         self.showMaximized()
 
+    def validate_settings(self):
+        if self._settings['destination'] is None:
+            self.get_folder()
+
+    def get_folder(self):
+        if self._settings['destination'] is None:
+            folder = QFileDialog.getExistingDirectory(self)
+            if folder:
+                self._settings['destination'] = folder
+
+    def closeEvent(self, a0: QCloseEvent) -> None:
+        self.hide()
+        self._fh.force_save = True
+        self._fh.save_settings(self._settings)
+        a0.accept()
+
     def debug_switch(self, *_):
         self._debug = not self._debug
 
@@ -213,7 +231,7 @@ class GUI(QMainWindow):
                 command.append('-ss')
                 command.append(f'{end}')
 
-            out_path = self.out_folder + '\\' + f'trim_{i}' + '.mp4'
+            out_path = self._settings['destination'] + '\\' + f'trim_{i}' + '.mp4'
 
             command.append(f'{out_path}')
             commands.append(command)
@@ -239,9 +257,9 @@ class GUI(QMainWindow):
         """
         filename = self.current_file.text()
         cuts_rel = self.mediaplayer.overlay.get_cropped_area()
-        out_path = self.out_folder + '\\' + self.out_name.text() + '.mp4'
+        out_path = self._settings['destination'] + '\\' + self.out_name.text() + '.mp4'
 
-        if os.path.isfile(out_path):
+        if self._fh.is_file(out_path):
             result = self.alert_message('Warning!', 'File already exists!', 'Do you want to overwrite it?', True)
             if result != QMessageBox.Yes:
                 raise InterruptedError('Can\'t overwrite file!')
@@ -282,7 +300,7 @@ class GUI(QMainWindow):
         start = self.get_player_time(int(self.get_millisecond_time(start_timestamp) * float(length_multipler)))
         end = self.get_player_time(int(self.get_millisecond_time(end_timestamp) * float(length_multipler)))
         crop_area = self.mediaplayer.overlay.get_cropped_area()
-        out_path = self.out_folder + '\\' + target_name + '.' + filetype
+        out_path = self._settings['destination'] + '\\' + target_name + '.' + filetype
 
         if os.path.isfile(out_path) or any([target_name + '.' + filetype == i.name for i in self._queue]):
             result = self.alert_message('Warning!', 'File already exists or is in the queue!',
@@ -306,6 +324,7 @@ class GUI(QMainWindow):
         self._log.debug(f"""
 File: {filename}
 Target name: {target_name}
+Target destination: {out_path}
 Target size: {target_size}
 Target filetype: {filetype}
 Length multiplier: {length_multipler}
@@ -415,7 +434,7 @@ Start: {end_timestamp} ({tf:.3f} seconds)
                     commands, name, duration = self._gen_commands(start, end)
 
             except InterruptedError as e:
-                print(e)
+                traceback.print_exc()
                 return
 
             process = Conversion(commands=commands, target_name=name, file_name=self.current_file.text(),

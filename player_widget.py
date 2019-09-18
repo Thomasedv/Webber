@@ -18,23 +18,21 @@ from video import VideoOverlay, GraphicsView
 class VideoWindow(QWidget):
 
     def __init__(self, parent=None):
-        super(VideoWindow, self).__init__(parent)
-        # self.setWindowTitle("PyQt Video Player Widget Example - pythonprogramminglanguage.com")
+        super(VideoWindow, self).__init__(parent=parent)
 
         self.mediaPlayer = QMediaPlayer(None, QMediaPlayer.VideoSurface)
-
-        # self.videoWidget = TEST()
-        # self.videoWidget.setAttribute(Qt.WA_PaintOnScreen)
-        # self.overlay = Player(self.videoWidget)
 
         self._scene = QGraphicsScene(self)
 
         self.videoWidget = QGraphicsVideoItem()
         self.videoWidget.setSize(QSizeF(1920, 1080))
+
         self.overlay = VideoOverlay(self.videoWidget, self.mediaPlayer)
+
         self._gv = GraphicsView(self._scene, parent=self)
         self._gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
         self._scene.addItem(self.videoWidget)
         self._scene.addWidget(self.overlay)
 

@@ -32,7 +32,7 @@ def main():
 
     app = QApplication(sys.argv)
     log.info('Starting GUI...')
-    program = GUI(r'D:\Clips')
+    program = GUI()
     exit_code = app.exec()
     log.info(f'Exiting with exit code {exit_code}')
     exit(exit_code)
