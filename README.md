@@ -8,7 +8,7 @@ A ffmpeg wrapper to cut and/crop videos to webm, while aiming for a filesize.
 - Set target output size of video
 - Pick if you want to include audio or not. 
 - Simple start and stop buttons for picking a trim point
-- Right-Click video and drag down and right to box in the desired area you want to crop the video to. (Might be visually buggy, but it works desite the visuals) (BETA testing, to be improved on if needed)
+- Right-Click video and drag down and right to box in the desired area you want to crop the video to. (Might be visually buggy, but it works despite the visuals) (BETA testing, to be improved on if needed)
 - Can queue up multiple video conversions. As soon as the Convert button is pressed, and changes won't affect the queued video!
 - Can cut without re-encoding straight to mp4. (Assuming ffmpeg can do it)
 
