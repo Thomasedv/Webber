@@ -23,11 +23,11 @@ class GUI(QMainWindow):
         self._active_prog = None
         self._resolution = None
         self._queue = deque()
-        self._log = get_logger('Webber.MainWindow')
+        self._log = get_logger('Webber.GUI')
         self._fh = FileHandler()
         self._settings = self._fh.load_settings()
         self.validate_settings()
-
+        self._log.info(f'Current dest folder: {self._settings["destination"]}')
         self.toggle_debug = QShortcut(QKeySequence('Ctrl+P'), self)
         self.toggle_debug.activated.connect(self.debug_switch)
 
@@ -35,6 +35,15 @@ class GUI(QMainWindow):
         self.worker.setMaxThreadCount(1)
 
         # GUI setup
+        menubar = QMenuBar(self)
+
+        menu = QMenu('Options', menubar)
+
+        select_dest = QAction('Select destination', menu)
+        select_dest.triggered.connect(self.get_folder)
+        menu.addAction(select_dest)
+        menubar.addMenu(menu)
+        self.setMenuBar(menubar)
 
         self.current_file = QLineEdit('')
         self.current_file.setReadOnly(True)
@@ -133,10 +142,9 @@ class GUI(QMainWindow):
             self.get_folder()
 
     def get_folder(self):
-        if self._settings['destination'] is None:
-            folder = QFileDialog.getExistingDirectory(self)
-            if folder:
-                self._settings['destination'] = folder
+        folder = QFileDialog.getExistingDirectory(self)
+        if folder:
+            self._settings['destination'] = folder
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         self.hide()

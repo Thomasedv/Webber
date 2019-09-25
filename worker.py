@@ -75,8 +75,8 @@ class Conversion(QThread):
             worker.waitForStarted()
             while not worker.waitForFinished(500):
                 if self.abort:
-                    worker.terminate()
-                    time.sleep(1)
+                    self.queue.clear()
+                    worker.kill()
                     return
             cur_pass += 1
             if worker.exitCode():
