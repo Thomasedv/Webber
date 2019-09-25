@@ -12,11 +12,12 @@ A ffmpeg wrapper to cut and/crop videos to webm, while aiming for a filesize.
 - Can queue up multiple video conversions. As soon as the Convert button is pressed, and changes won't affect the queued video!
 - Can cut without re-encoding straight to mp4. (Assuming ffmpeg can do it)
 
-# How to use: 
+# Controls: 
 - Press M to mute the video
 - Use the scroll-wheel to increase/decrease the volume. 
 - Left/Right skips 5 seconds forward/backwards. 
 
+# How to use: 
 - Drag video to load it. 
 - Select start/end using the video position, and the buttons. (or input timestamp manually, do follow the format in use)
 - Give it a name. Select options you want. 
