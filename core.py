@@ -193,14 +193,12 @@ class GUI(QMainWindow):
     def get_end(self):
         self.end_time.setText(self.get_player_time())
 
-    def _gen_split_commands(self):
+    def _gen_split_commands(self, state):
         """
         Generates commands for splitting file into 3 parts.
         There the cut points are start/end mark.
         If the video is not cropped, there is no reencoding.
         """
-
-        state = self.load_options()
 
         if state["crop_area"] is not None:
             x = int(int(self._resolution[0]) * state["crop_area"][0])
@@ -260,13 +258,11 @@ class GUI(QMainWindow):
         self.playback_rate.setDisabled(state)
         self.sound.setDisabled(state)
 
-    def _gen_cut(self):
+    def _gen_cut_commands(self, state):
         """
         Generates command for splitting a file like the regular option.
         If the video is not cropped, there is no reencoding.
         """
-        state = self.load_options()
-
         out_path = self._settings['destination'] + '\\' + self.out_name.text() + '.mp4'
 
         if self._fh.is_file(out_path):
@@ -340,9 +336,8 @@ class GUI(QMainWindow):
 
         return state
 
-    def _gen_commands(self):
+    def _gen_conversion_commands(self, state):
 
-        state = self.load_options()
         out_path = self._settings['destination'] + '\\' + state["target_name"] + '.' + state["filetype"]
 
         if os.path.isfile(out_path) or any(
@@ -462,19 +457,20 @@ class GUI(QMainWindow):
             self.startbtn.setDisabled(True)
             self.cancelbtn.setDisabled(False)
 
+            state = self.load_options()
             try:
                 if self.trim.isChecked():
-                    commands, name, duration = self._gen_split_commands()
+                    commands, name, duration = self._gen_split_commands(state)
                 elif self.cut.isChecked():
-                    commands, name, duration = self._gen_cut()
+                    commands, name, duration = self._gen_cut_commands(state)
                 else:
-                    commands, name, duration = self._gen_commands()
+                    commands, name, duration = self._gen_conversion_commands(state)
 
             except InterruptedError as e:
                 self._log.info(f'User error: {e}')
                 return
 
-            process = Conversion(commands=commands, target_name=name, file_name=self.current_file.text(),
+            process = Conversion(commands=commands, target_name=name, file_name=state['filename'],
                                  duration=duration)
             process.finished.connect(self._deplete_queue)
             process.finished.connect(self.done)
@@ -552,13 +548,13 @@ class GUI(QMainWindow):
     def add_url(self, file):
         p = QProcess()
         p.start(
-            f'ffprobe "{file.toString().replace("file:///", "")}" '
+            f'ffprobe "{file.toLocalFile().replace("file:///", "")}" '
             f'-v 0 -select_streams v:0 -show_entries '
             f'stream=width,height -of csv=s=x:p=0')
         p.waitForStarted()
         p.waitForFinished()
         self._resolution = p.readAll().data().decode('utf-8', 'replace').strip().split('x')
-
+        self._log.debug(f'Resolution of video is {self._resolution[0]}x{self._resolution[1]}')
         self.mediaplayer.mediaPlayer.setMedia(QMediaContent(file))
 
         self.mediaplayer.playButton.setEnabled(True)
