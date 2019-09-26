@@ -27,7 +27,7 @@ class Conversion(QThread):
         self.name = target_name
         self.file_name = file_name
         self.dur = duration
-        self._log = get_logger('Webber.Conversion')
+        self._log = get_logger('Webber.Convert')
         self._log.info(f'Instanciated with target file {self.name}')
         self.queue = deque(commands)
         try:
@@ -56,7 +56,7 @@ class Conversion(QThread):
                 framerate = int(x) / int(y)
             except Exception:
                 framerate = float(info)
-            self._log.info(f'Found framerate: {framerate}')
+            self._log.info(f'Found framerate: {framerate:.4f}')
         except Exception:
             self._log.error('Failed to get info!')
             framerate = None
@@ -77,6 +77,7 @@ class Conversion(QThread):
                 if self.abort:
                     self.queue.clear()
                     worker.kill()
+                    self._log.info('Process terminated by user...')
                     return
             cur_pass += 1
             if worker.exitCode():

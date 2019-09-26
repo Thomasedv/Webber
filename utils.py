@@ -13,7 +13,7 @@ LOG_FILE = 'Webber.log'
 log = logging.getLogger('Webber')
 log.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter('{name:<15}:{levelname:<7}: {message}', style="{")
+formatter = logging.Formatter('{name:<15}:{levelname:<7}:{lineno:4d}: {message}', style="{")
 
 filehandler = logging.FileHandler(LOG_FILE, encoding='utf-8')
 filehandler.setFormatter(formatter)

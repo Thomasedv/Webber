@@ -247,7 +247,6 @@ class VideoWindow(QWidget):
     def setPosition(self, position):
         self.positionSlider.blockSignals(True)
         self.mediaPlayer.setPosition(position)
-        print(self.mediaPlayer.position())
         self.positionSlider.blockSignals(False)
 
     def handleError(self):

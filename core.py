@@ -1,4 +1,6 @@
 import os
+import re
+import textwrap
 import traceback
 from collections import deque
 
@@ -191,20 +193,20 @@ class GUI(QMainWindow):
     def get_end(self):
         self.end_time.setText(self.get_player_time())
 
-    def _gen_split_commands(self, start, end):
+    def _gen_split_commands(self):
         """
         Generates commands for splitting file into 3 parts.
         There the cut points are start/end mark.
         If the video is not cropped, there is no reencoding.
         """
 
-        filename = self.current_file.text()
-        cuts_rel = self.mediaplayer.overlay.get_cropped_area()
-        if cuts_rel is not None:
-            x = int(int(self._resolution[0]) * cuts_rel[0])
-            y = int(int(self._resolution[1]) * cuts_rel[1])
-            w = int(int(self._resolution[0]) * cuts_rel[2])
-            h = int(int(self._resolution[1]) * cuts_rel[3])
+        state = self.load_options()
+
+        if state["crop_area"] is not None:
+            x = int(int(self._resolution[0]) * state["crop_area"][0])
+            y = int(int(self._resolution[1]) * state["crop_area"][1])
+            w = int(int(self._resolution[0]) * state["crop_area"][2])
+            h = int(int(self._resolution[1]) * state["crop_area"][3])
 
             conversion_style = ['-crf', '18', '-filter:v', f'crop={w}:{h}:{x}:{y}', '-acodec', 'copy']
         else:
@@ -217,19 +219,19 @@ class GUI(QMainWindow):
             command.append('-nostdin')
             command.append('-i')
 
-            command.append(f'{filename}')
+            command.append(f'{state["filename"]}')
             command.append('-y')
             command.extend(['-strict', '-2'])
 
             if i == 0:
                 command.append('-to')
-                command.append(f'{start}')
+                command.append(f'{state["ts_start"]}')
                 command.extend(conversion_style)
             elif i == 1:
                 command.append('-ss')
-                command.append(f'{start}')
+                command.append(f'{state["ts_start"]}')
                 command.append('-to')
-                command.append(f'{end}')
+                command.append(f'{state["ts_end"]}')
 
                 command.extend(conversion_style)
 
@@ -237,14 +239,14 @@ class GUI(QMainWindow):
             else:
                 command.extend(conversion_style)
                 command.append('-ss')
-                command.append(f'{end}')
+                command.append(f'{state["ts_end"]}')
 
             out_path = self._settings['destination'] + '\\' + f'trim_{i}' + '.mp4'
 
             command.append(f'{out_path}')
             commands.append(command)
 
-        return commands, f'Cutting {filename.split("/")[-1]}', 0
+        return commands, f'Cutting {state["filename"].split("/")[-1]}', 0
 
     def _disable(self):
         if self.sender() is self.trim and self.trim.isChecked():
@@ -258,13 +260,13 @@ class GUI(QMainWindow):
         self.playback_rate.setDisabled(state)
         self.sound.setDisabled(state)
 
-    def _gen_cut(self, start, end):
+    def _gen_cut(self):
         """
         Generates command for splitting a file like the regular option.
         If the video is not cropped, there is no reencoding.
         """
-        filename = self.current_file.text()
-        cuts_rel = self.mediaplayer.overlay.get_cropped_area()
+        state = self.load_options()
+
         out_path = self._settings['destination'] + '\\' + self.out_name.text() + '.mp4'
 
         if self._fh.is_file(out_path):
@@ -277,18 +279,18 @@ class GUI(QMainWindow):
         command.append('-hide_banner')
         command.append('-nostdin')
         command.append('-i')
-        command.append(f'{filename}')
+        command.append(f'{state["filename"]}')
         command.append('-y')
         command.append('-ss')
-        command.append(f'{start}')
+        command.append(f'{state["ts_start"]}')
         command.append('-to')
-        command.append(f'{end}')
+        command.append(f'{state["ts_end"]}')
 
-        if cuts_rel is not None:
-            x = int(int(self._resolution[0]) * cuts_rel[0])
-            y = int(int(self._resolution[1]) * cuts_rel[1])
-            w = int(int(self._resolution[0]) * cuts_rel[2])
-            h = int(int(self._resolution[1]) * cuts_rel[3])
+        if state["crop_area"] is not None:
+            x = int(int(self._resolution[0]) * state["crop_area"][0])
+            y = int(int(self._resolution[1]) * state["crop_area"][1])
+            w = int(int(self._resolution[0]) * state["crop_area"][2])
+            h = int(int(self._resolution[1]) * state["crop_area"][3])
 
             command.extend(['-crf', '18', '-filter:v', f'crop={w}:{h}:{x}:{y}', '-acodec', 'copy'])
         else:
@@ -296,50 +298,80 @@ class GUI(QMainWindow):
 
         command.append(f'{out_path}')
 
-        return [command], filename, 0
+        return [command], state["filename"], 0
 
-    def _gen_commands(self, start_timestamp, end_timestamp):
+    def load_options(self):
+        state = dict(
+            ts_start=self.start_time.text(),
+            ts_end=self.end_time.text(),
+            filename=re.sub(r'^[^\\/:"*?<>|]+$', '', self.current_file.text()),
+            target_size=float(self.bitrate.text()),
+            filetype=self.filetype.currentText(),
+            target_name=self.out_name.text(),
+            multiplier=self.playback_rate.text(),
+            crop_area=self.mediaplayer.overlay.get_cropped_area()
+        )
 
-        filename = self.current_file.text()
-        target_size = float(self.bitrate.text())
-        filetype = self.filetype.currentText()
-        target_name = self.out_name.text()
-        length_multipler = self.playback_rate.text()
-        start = self.get_player_time(int(self.get_millisecond_time(start_timestamp) * float(length_multipler)))
-        end = self.get_player_time(int(self.get_millisecond_time(end_timestamp) * float(length_multipler)))
-        crop_area = self.mediaplayer.overlay.get_cropped_area()
-        out_path = self._settings['destination'] + '\\' + target_name + '.' + filetype
+        valid_name = re.match(r'(^ *$)', state['filename']) is None
+        if not valid_name:
+            self.alert_message('Invalid filename', 'The target filename is not valid!', '')
+            raise InterruptedError('Filename not valid')
 
-        if os.path.isfile(out_path) or any([target_name + '.' + filetype == i.name for i in self._queue]):
+        stamp = 'start'
+        try:
+            start = self.get_player_time(int(self.get_millisecond_time(state['ts_start']) * float(state['multiplier'])))
+            state['start'] = start
+            stamp = 'end'
+            end = self.get_player_time(int(self.get_millisecond_time(state['ts_end']) * float(state['multiplier'])))
+            state['end'] = end
+        except Exception:
+            self.alert_message('Invalid timestamp',
+                               f'The {stamp} timestamp is not valid!',
+                               f'"{state[f"ts_{stamp}"]}" is not valid for Webber!')
+            raise InterruptedError('Timestamp not valid')
+
+        self._log.debug(textwrap.dedent(f"""
+        File: {state["filename"]}
+        Target name: {state["target_name"]}
+        Target size: {state['target_size']}
+        Target filetype: {state["filetype"]}
+        Length multiplier: {state["multiplier"]}
+        """))
+
+        return state
+
+    def _gen_commands(self):
+
+        state = self.load_options()
+        out_path = self._settings['destination'] + '\\' + state["target_name"] + '.' + state["filetype"]
+
+        if os.path.isfile(out_path) or any(
+                [state["target_name"] + '.' + state["filetype"] == i.name for i in self._queue]):
             result = self.alert_message('Warning!', 'File already exists or is in the queue!',
                                         'Do you want to overwrite it?', True)
             if result != QMessageBox.Yes:
                 raise InterruptedError('Can\'t overwrite file!')
-        t0 = self.get_millisecond_time(start) / 1000
-        tf = self.get_millisecond_time(end) / 1000
+
+        t0 = self.get_millisecond_time(state["start"]) / 1000
+        tf = self.get_millisecond_time(state["end"]) / 1000
 
         duration = tf - t0  # In seconds!
-        bitrate = int(target_size * 8 * 1024 // duration)
+        bitrate = int(state["target_size"] * 8 * 1024 // duration)
 
         if self.sound.isChecked():
             bitrate -= 320
 
         if bitrate < 1:
+            self.alert_message('Target size too small!',
+                               'The video is too long for the target bitrate!','')
             raise InterruptedError('Too small target filesize, too low bitrate')
-        else:
-            print('Bitrate', bitrate)
 
-        self._log.debug(f"""
-File: {filename}
-Target name: {target_name}
-Target destination: {out_path}
-Target size: {target_size}
-Target filetype: {filetype}
-Length multiplier: {length_multipler}
-Start: {start_timestamp} ({t0:.3f} seconds)
-Start: {end_timestamp} ({tf:.3f} seconds)
-""")
-
+        self._log.debug(textwrap.dedent(f"""
+                            Target bitrate: {bitrate}
+                            Target destination: {out_path}
+                            Start: {state['ts_start']} ({t0:.3f} seconds)
+                            Start: {state['ts_end']} ({tf:.3f} seconds)
+                            """))
         commands = []
 
         command_1 = []
@@ -350,17 +382,17 @@ Start: {end_timestamp} ({tf:.3f} seconds)
 
         checked = False
         for i in (command_1, command_2):
-            i.extend(['-i', f'{filename}'])
+            i.extend(['-i', f'{state["filename"]}'])
             i.extend(['-y'])
 
-            if start != '':
-                i.extend(['-ss', f'{start}'])
-            if end != '':
-                i.extend(['-to', f'{end}'])
+            if state["start"] != '':
+                i.extend(['-ss', f'{state["start"]}'])
+            if state["end"] != '':
+                i.extend(['-to', f'{state["end"]}'])
 
             i.extend(['-map', '0:v:0', '-threads', '12'])
 
-            if filetype == 'webm':
+            if state["filetype"] == 'webm':
                 i.extend(['-c:v', 'libvpx-vp9'])
                 i.extend(['-tile-columns', '6'])
                 i.extend(['-frame-parallel', '0', '-auto-alt-ref', '1'])
@@ -371,7 +403,7 @@ Start: {end_timestamp} ({tf:.3f} seconds)
 
             if self.sound.isChecked():
                 i.extend(['-map', '0:a:0', '-c:a', 'libopus', '-b:a', '320k'])
-                if float(length_multipler) != 1 and not checked:
+                if float(state["multiplier"]) != 1 and not checked:
                     result = self.alert_message('Warning!',
                                                 'No sound allowed with changed duration!\n'
                                                 'Ignoring the duration change.',
@@ -379,23 +411,23 @@ Start: {end_timestamp} ({tf:.3f} seconds)
                                                 True)
                     if result == QMessageBox.Yes:
                         raise InterruptedError('Stopped on command!')
-                    length_multipler = 1
+                    state["multiplier"] = 1
                     checked = True  # In multi pass, this prevents repeatedly asking
             else:
                 i.append('-an')
 
-                if crop_area is not None:
-                    x = int(int(self._resolution[0]) * crop_area[0])
-                    y = int(int(self._resolution[1]) * crop_area[1])
-                    w = int(int(self._resolution[0]) * crop_area[2])
-                    h = int(int(self._resolution[1]) * crop_area[3])
+                if state["crop_area"] is not None:
+                    x = int(int(self._resolution[0]) * state["crop_area"][0])
+                    y = int(int(self._resolution[1]) * state["crop_area"][1])
+                    w = int(int(self._resolution[0]) * state["crop_area"][2])
+                    h = int(int(self._resolution[1]) * state["crop_area"][3])
                     crop = f',crop={w}:{h}:{x}:{y}'
                 else:
                     crop = ''
-                i.extend(['-filter:v', f'setpts={length_multipler}*PTS{crop}'])
+                i.extend(['-filter:v', f'setpts={state["multiplier"]}*PTS{crop}'])
 
         command_1.extend(['-f', 'null', '-pass', '1', 'NUL'])
-        command_2.extend(['-f', f'{filetype}', '-pass', '2', '-metadata', f'title={target_name}'])
+        command_2.extend(['-f', f'{state["filetype"]}', '-pass', '2', '-metadata', f'title={state["target_name"]}'])
 
         # com_2.extend(['-vf', f'minterpolate=fps={fps}:mi_mode=mci:mc_mode=aobmc:me=umh:vsbmc=1'])
 
@@ -403,7 +435,7 @@ Start: {end_timestamp} ({tf:.3f} seconds)
 
         commands.extend([command_1, command_2])
 
-        return commands, self.out_name.text() + '.' + filetype, duration
+        return commands, self.out_name.text() + '.' + state["filetype"], duration
 
     def alert_message(self, title, text, info_text, question=False, allow_cancel=False):
         warning_window = QMessageBox(parent=self)
@@ -430,19 +462,16 @@ Start: {end_timestamp} ({tf:.3f} seconds)
             self.startbtn.setDisabled(True)
             self.cancelbtn.setDisabled(False)
 
-            start = self.start_time.text()
-            end = self.end_time.text()
-
             try:
                 if self.trim.isChecked():
-                    commands, name, duration = self._gen_split_commands(start, end)
+                    commands, name, duration = self._gen_split_commands()
                 elif self.cut.isChecked():
-                    commands, name, duration = self._gen_cut(start, end)
+                    commands, name, duration = self._gen_cut()
                 else:
-                    commands, name, duration = self._gen_commands(start, end)
+                    commands, name, duration = self._gen_commands()
 
             except InterruptedError as e:
-                traceback.print_exc()
+                self._log.info(f'User error: {e}')
                 return
 
             process = Conversion(commands=commands, target_name=name, file_name=self.current_file.text(),
