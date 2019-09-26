@@ -32,6 +32,8 @@ def get_logger(string):
 
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
+    log = get_logger('Webber.FATAL')
+    log.error('Fatal error:\n'+traceback)
 
 
 # If not frozen as .exe, crashes show here
