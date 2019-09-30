@@ -563,13 +563,22 @@ class GUI(QMainWindow):
         self.current_file.setText(str(file.toLocalFile()))
 
     def keyPressEvent(self, event):
+        modifiers = QApplication.keyboardModifiers()
         if event.key() == Qt.Key_Space:
             self.mediaplayer.play()
         elif event.key() == Qt.Key_M:
             self.mediaplayer.mediaPlayer.setMuted(not self.mediaplayer.mediaPlayer.isMuted())
         elif event.key() == Qt.Key_Left:
-            self.mediaplayer.skip(-5000)
+            if modifiers == Qt.ControlModifier:
+                step = 500
+            else:
+                step = 5000
+            self.mediaplayer.skip(-step)
         elif event.key() == Qt.Key_Right:
-            self.mediaplayer.skip(5000)
+            if modifiers == Qt.ControlModifier:
+                step = 1000
+            else:
+                step = 5000
+            self.mediaplayer.skip(step)
         else:
             super(GUI, self).keyPressEvent(event)

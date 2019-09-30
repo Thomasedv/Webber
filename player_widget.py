@@ -1,5 +1,3 @@
-# PyQt5 Video player
-# !/usr/bin/env python
 import sys
 import traceback
 import typing
@@ -12,6 +10,7 @@ from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel,
                              QSizePolicy, QSlider, QStyle, QVBoxLayout, QGraphicsScene, QProxyStyle)
 from PyQt5.QtWidgets import QWidget, QPushButton
 
+from relay_widgets import RelayPushButton, RelaySlider
 from video import VideoOverlay, GraphicsView
 
 
@@ -70,7 +69,7 @@ class VideoWindow(QWidget):
         self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
         self.playButton.clicked.connect(self.play)
 
-        self.positionSlider = QSlider(Qt.Horizontal)
+        self.positionSlider = RelaySlider(Qt.Horizontal)
         # self.positionSlider
         self.positionSlider.setStyle(SliderProxy(self.positionSlider.style()))
         self.positionSlider.setRange(0, 0)
@@ -113,8 +112,9 @@ class VideoWindow(QWidget):
 
         # Create layouts to place inside widget
 
-        self.trim_btn = QPushButton('Start')
-        self.trim2_btn = QPushButton('End')
+        self.trim_btn = RelayPushButton('Start')
+        self.trim2_btn = RelayPushButton('End')
+
         self.trim_btn.setDisabled(True)
         self.trim2_btn.setDisabled(True)
 
@@ -171,9 +171,11 @@ class VideoWindow(QWidget):
     def skip(self, time_ms):
         if not self.mediaPlayer.media().isNull():
             self.mediaPlayer.blockSignals(True)
+            was_paused = self.mediaPlayer.state() in (QMediaPlayer.PausedState, QMediaPlayer.StoppedState)
             self.mediaPlayer.pause()
             self.mediaPlayer.setPosition(self.mediaPlayer.position() + time_ms)
-            self.mediaPlayer.play()
+            if not was_paused:
+                self.mediaPlayer.play()
             self.mediaPlayer.blockSignals(False)
 
     def resizeEvent(self, event) -> None:

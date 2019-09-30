@@ -10,6 +10,7 @@ from PyQt5.QtCore import QThreadPool, QTimer, Qt, QRunnable
 
 LOG_FILE = 'Webber.log'
 
+
 log = logging.getLogger('Webber')
 log.setLevel(logging.DEBUG)
 
@@ -31,14 +32,13 @@ def get_logger(string):
 
 
 def except_hook(cls, exception, traceback):
-    sys.__excepthook__(cls, exception, traceback)
     log = get_logger('Webber.FATAL')
-    log.error('Fatal error:\n'+traceback)
+    log.error('Fatal error:\n' + traceback)
+    sys.__excepthook__(cls, exception, traceback)
 
 
 # If not frozen as .exe, crashes show here
-if not getattr(sys, 'frozen', False):
-    sys.excepthook = except_hook
+sys.excepthook = except_hook
 
 
 class Task(QRunnable):
