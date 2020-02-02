@@ -14,3 +14,4 @@ class RelaySlider(QSlider):
     def keyPressEvent(self, a0) -> None:
         self.parent().keyPressEvent(a0)
 
+

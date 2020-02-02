@@ -256,7 +256,7 @@ class GUI(QMainWindow):
         # self.out_name.setDisabled(state)
         self.bitrate.setDisabled(state)
         self.playback_rate.setDisabled(state)
-        self.sound.setDisabled(state)
+        self.sound.setDisabled(self.trim.isChecked())
 
     def _gen_cut_commands(self, state):
         """
@@ -290,7 +290,12 @@ class GUI(QMainWindow):
 
             command.extend(['-crf', '18', '-filter:v', f'crop={w}:{h}:{x}:{y}', '-acodec', 'copy'])
         else:
-            command.extend(['-vcodec', 'copy', '-acodec', 'copy'])
+            command.extend(['-vcodec', 'copy'])
+
+        if self.sound.isChecked():
+            command.extend(['-acodec', 'copy'])
+        else:
+            command.extend(['-an'])
 
         command.append(f'{out_path}')
 
@@ -421,7 +426,7 @@ class GUI(QMainWindow):
                     crop = ''
                 i.extend(['-filter:v', f'setpts={state["multiplier"]}*PTS{crop}'])
 
-        command_1.extend(['-f', 'null', '-pass', '1', 'NUL'])
+        command_1.extend(['-f', 'webm', '-pass', '1', 'NUL'])
         command_2.extend(['-f', f'{state["filetype"]}', '-pass', '2', '-metadata', f'title={state["target_name"]}'])
 
         # com_2.extend(['-vf', f'minterpolate=fps={fps}:mi_mode=mci:mc_mode=aobmc:me=umh:vsbmc=1'])
