@@ -1,6 +1,11 @@
 # Webber
 A ffmpeg wrapper to cut and/crop videos to webm, while aiming for a filesize.
 ![Program](https://i.imgur.com/vQCPJLg.png)
+## Disclaimer
+
+I'm not well versed with setting up programs on other peoples computer, and this program needs some codecs to play specific video files, at present i can't and don't know how to provide these with the program itself, nor detect if they are missing, which means, if the codecs is missing it just won't work. Apparently K-Lite codec should have all the basic codecs or filter you need, but it's untested so far. If you have SVP (smooth video project) then you may be ok, as i got the required codecs support from that by coincidence. 
+
+In general, this is a work to do a job, a tool of functionality, but it's just cobbled together, and for people other than me, probably way less intuitive to use. Read up on controls, make an issue if there is a question or problem. 
 
 # Features
 
