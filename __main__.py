@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import sys
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
 cwd_was_sys32 = False

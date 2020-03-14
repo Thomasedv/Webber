@@ -135,7 +135,7 @@ class FileHandler:
     # TODO: Implement logging, since returned values from threaded functions are discarded.
     # Need to know if errors happen!
 
-    def __init__(self, settings='settings.json'):
+    def __init__(self, settings='webber_settings.json'):
         self.settings_path = settings
         self.work_dir = os.getcwd().replace('\\', '/')
 

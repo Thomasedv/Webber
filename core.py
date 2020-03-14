@@ -416,15 +416,15 @@ class GUI(QMainWindow):
             else:
                 i.append('-an')
 
-                if state["crop_area"] is not None:
-                    x = int(int(self._resolution[0]) * state["crop_area"][0])
-                    y = int(int(self._resolution[1]) * state["crop_area"][1])
-                    w = int(int(self._resolution[0]) * state["crop_area"][2])
-                    h = int(int(self._resolution[1]) * state["crop_area"][3])
-                    crop = f',crop={w}:{h}:{x}:{y}'
-                else:
-                    crop = ''
-                i.extend(['-filter:v', f'setpts={state["multiplier"]}*PTS{crop}'])
+            if state["crop_area"] is not None:
+                x = int(int(self._resolution[0]) * state["crop_area"][0])
+                y = int(int(self._resolution[1]) * state["crop_area"][1])
+                w = int(int(self._resolution[0]) * state["crop_area"][2])
+                h = int(int(self._resolution[1]) * state["crop_area"][3])
+                crop = f',crop={w}:{h}:{x}:{y}'
+            else:
+                crop = ''
+            i.extend(['-filter:v', f'setpts={state["multiplier"]}*PTS{crop}'])
 
         command_1.extend(['-f', 'webm', '-pass', '1', 'NUL'])
         command_2.extend(['-f', f'{state["filetype"]}', '-pass', '2', '-metadata', f'title={state["target_name"]}'])
