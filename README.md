@@ -27,3 +27,11 @@ In general, this is a work to do a job, a tool of functionality, but it's just c
 - Select start/end using the video position, and the buttons. (or input timestamp manually, do follow the format in use)
 - Give it a name. Select options you want. 
 - Click convert, and follow progress in the top left pane, wait til it says finished. 
+
+# TODO:
+
+This is not a userfriendly program at the moment. There is a few major changes needed to make it easier to handle:
+- Show proper errors when missing required codec, link to codec install site (3rd party however)
+- Proper firsttime prompt, not a random pick a target directory popup that's not even explained. 
+- Perhaps a theme? (Dark)
+- Short video tutorial, or just image explaning buttons
