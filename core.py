@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import textwrap
 import traceback
 from collections import deque
@@ -28,8 +29,10 @@ class GUI(QMainWindow):
         self._log = get_logger('Webber.GUI')
         self._fh = FileHandler()
         self._settings = self._fh.load_settings()
+
         self.validate_settings()
         self._log.info(f'Current dest folder: {self._settings["destination"]}')
+
         self.toggle_debug = QShortcut(QKeySequence('Ctrl+P'), self)
         self.toggle_debug.activated.connect(self.debug_switch)
 
@@ -140,15 +143,21 @@ class GUI(QMainWindow):
         self.showMaximized()
 
     def validate_settings(self):
-        if self._settings['destination'] is None:
+        # TODO: Check for errors here
+        while self._settings['destination'] is None:
             self.get_folder()
+            if self._settings['destination'] is None:
+                result = self.alert_message('Error', 'You need to select a destionation folder!','Do you want to try again?', True)
+                if result != QMessageBox.Yes:
+                    sys.exit(1)
 
     def get_folder(self):
-        folder = QFileDialog.getExistingDirectory(self)
+        folder = QFileDialog.getExistingDirectory(self, 'Pick a destination folder:', '.')
         if folder:
             self._settings['destination'] = folder
+            self._log.info(f'Current dest folder: {self._settings["destination"]}')
 
-    def closeEvent(self, a0: QCloseEvent) -> None:
+    def closeEvent(self, a0) -> None:
         self.hide()
         self._fh.force_save = True
         self._fh.save_settings(self._settings)

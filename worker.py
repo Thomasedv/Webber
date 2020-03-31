@@ -130,4 +130,6 @@ class Conversion(QThread):
         except Exception as e:
             self._log.error(f'Failed formatting with error: {e.with_traceback()}')
             traceback.print_exc()
-        self.process_output.emit(output)
+
+        else:
+            self.process_output.emit(output)

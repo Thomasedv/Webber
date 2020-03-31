@@ -25,7 +25,9 @@ def main():
     app = QApplication(sys.argv)
     log.info('Starting GUI...')
     program = GUI()
+
     exit_code = app.exec()
+
     log.info(f'Exiting with exit code {exit_code}')
     sys.exit(exit_code)
 
@@ -38,6 +40,6 @@ if __name__ == '__main__':
     log.info('Webber has been started...')
 
     if cwd_was_sys32:
-        log.warning(f'Working dir was system32, changed to {os.getcwd().lower()}')
+        log.warning(f'Working dir was system32, changed to {os.getcwd()}')
 
     main()

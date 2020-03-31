@@ -28,7 +28,7 @@ class GraphicsView(QGraphicsView):
 
     def dragMoveEvent(self, event):
         try:
-            return self.parent().dragEnterEvent(event)
+            return self.parent().dragMoveEvent(event)
         except:
             traceback.print_exc()
 

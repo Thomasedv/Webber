@@ -150,7 +150,8 @@ class FileHandler:
                 json.dump(settings, f, indent=4, sort_keys=True)
                 return True
         except (OSError, IOError) as e:
-            # TODO: Logging!
+            log = get_logger('Webber.FileHandler')
+            log.error('Fatal error:\n' + str(e))
             return False
 
     def load_settings(self, reset=False):
