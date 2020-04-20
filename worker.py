@@ -50,7 +50,7 @@ class Conversion(QThread):
             p.waitForFinished()
 
             info = p.readAll().data().decode('utf-8', 'replace').strip()
-
+            self._log.debug(f'Given framerate info: {info}')
             try:
                 x, y = info.split('/')
                 framerate = int(x) / int(y)

@@ -147,7 +147,8 @@ class GUI(QMainWindow):
         while self._settings['destination'] is None:
             self.get_folder()
             if self._settings['destination'] is None:
-                result = self.alert_message('Error', 'You need to select a destionation folder!','Do you want to try again?', True)
+                result = self.alert_message('Error', 'You need to select a destionation folder!',
+                                            'Do you want to try again?', True)
                 if result != QMessageBox.Yes:
                     sys.exit(1)
 
@@ -372,7 +373,7 @@ class GUI(QMainWindow):
 
         if bitrate < 1:
             self.alert_message('Target size too small!',
-                               'The video is too long for the target bitrate!','')
+                               'The video is too long for the target bitrate!', '')
             raise InterruptedError('Too small target filesize, too low bitrate')
 
         self._log.debug(textwrap.dedent(f"""
@@ -389,26 +390,40 @@ class GUI(QMainWindow):
         command_1.append('-hide_banner')
         command_1.append('-nostdin')
 
+        def convert_to_h(string):
+            parts = string.split(':')
+            if int(parts[0]) > 59:
+                return ':'.join([str(int(parts[0]) // 60), str(int(parts[0]) % 60)] + parts[1:])
+            else:
+                return string
+
+        start_formatted = convert_to_h(state["start"])
+        end_formatted = convert_to_h(state["end"])
         checked = False
         for i in (command_1, command_2):
-            i.extend(['-i', f'{state["filename"]}'])
+
             i.extend(['-y'])
 
             if state["start"] != '':
-                i.extend(['-ss', f'{state["start"]}'])
+                i.extend(['-ss', f'{start_formatted}'])
             if state["end"] != '':
-                i.extend(['-to', f'{state["end"]}'])
+                i.extend(['-to', f'{end_formatted}'])
+
+            i.extend(['-i', f'{state["filename"]}'])
 
             i.extend(['-map', '0:v:0', '-threads', '12'])
 
             if state["filetype"] == 'webm':
                 i.extend(['-c:v', 'libvpx-vp9'])
                 i.extend(['-tile-columns', '6'])
+                i.extend(['-static-thresh', '0'])
                 i.extend(['-frame-parallel', '0', '-auto-alt-ref', '1'])
-                i.extend(['-lag-in-frames', '25', '-g', '128', '-pix_fmt', 'yuv420p'])
+                i.extend(['-lag-in-frames', '25', '-g', '288', '-pix_fmt', 'yuv420p'])
 
             i.extend(['-row-mt', '1'])
-            i.extend(['-b:v', f'{bitrate:.2f}k', '-crf', '28'])
+            # TODO: Let user pick crf
+
+            i.extend(['-b:v', f'{bitrate:.2f}k', '-crf', '5'])
 
             if self.sound.isChecked():
                 i.extend(['-map', '0:a:0', '-c:a', 'libopus', '-b:a', '320k'])
