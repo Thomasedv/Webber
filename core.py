@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import *
 from player_widget import VideoWindow
 from utils import get_logger, color_text, FileHandler
 from worker import Conversion
+from formats import format_spec
 
 
 class GUI(QMainWindow):
@@ -101,7 +102,7 @@ class GUI(QMainWindow):
 
         self.filetype = QComboBox()
         # TODO include more filetypes here!
-        self.filetype.addItems(['webm', 'mp4'])
+        self.filetype.addItems(format_spec.keys())
 
         self.layout = QGridLayout()
         self.layout.addWidget(self.current_file, 0, 0, 1, 3)
@@ -225,10 +226,7 @@ class GUI(QMainWindow):
             command = list()
             command.append('-hide_banner')
             command.append('-nostdin')
-            command.append('-i')
-
-            command.append(f'{state["filename"]}')
-            command.append('-y')
+            command.extend(['-i', f'{state["filename"]}', '-y'])
             command.extend(['-strict', '-2'])
 
             if i == 0:
@@ -236,18 +234,15 @@ class GUI(QMainWindow):
                 command.append(f'{state["ts_start"]}')
                 command.extend(conversion_style)
             elif i == 1:
-                command.append('-ss')
-                command.append(f'{state["ts_start"]}')
-                command.append('-to')
-                command.append(f'{state["ts_end"]}')
+                command.extend(['-ss', f'{state["ts_start"]}'])
+                command.extend(['-to', f'{state["ts_end"]}'])
 
                 command.extend(conversion_style)
 
                 # trim_part.extend(['-filter:v', f'setpts=4*PTS', '-af', 'atempo=0.5,atempo=0.5'])
             else:
                 command.extend(conversion_style)
-                command.append('-ss')
-                command.append(f'{state["ts_end"]}')
+                command.extend(['-ss', f'{state["ts_end"]}'])
 
             out_path = self._settings['destination'] + '\\' + f'trim_{i}' + '.mp4'
 
@@ -282,15 +277,11 @@ class GUI(QMainWindow):
 
         command = list()
 
-        command.append('-hide_banner')
-        command.append('-nostdin')
-        command.append('-i')
-        command.append(f'{state["filename"]}')
-        command.append('-y')
-        command.append('-ss')
-        command.append(f'{state["ts_start"]}')
-        command.append('-to')
-        command.append(f'{state["ts_end"]}')
+        command.extend(
+            ['-hide_banner', '-nostdin', '-y',
+             '-i',  f'{state["filename"]}',
+             '-ss', f'{state["ts_start"]}',
+             '-to', f'{state["ts_end"]}'])
 
         if state["crop_area"] is not None:
             x = int(int(self._resolution[0]) * state["crop_area"][0])
@@ -400,10 +391,14 @@ class GUI(QMainWindow):
         start_formatted = convert_to_h(state["start"])
         end_formatted = convert_to_h(state["end"])
         checked = False
+
+        encoding = format_spec[state["filetype"]]
+
         for i in (command_1, command_2):
 
             i.extend(['-y'])
-
+            # TODO: Make this option??
+            # i.extend(['-hwaccel', 'cuda'])
             if state["start"] != '':
                 i.extend(['-ss', f'{start_formatted}'])
             if state["end"] != '':
@@ -411,19 +406,13 @@ class GUI(QMainWindow):
 
             i.extend(['-i', f'{state["filename"]}'])
 
-            i.extend(['-map', '0:v:0', '-threads', '12'])
+            i.extend(['-map', '0:v:0'])
 
-            if state["filetype"] == 'webm':
-                i.extend(['-c:v', 'libvpx-vp9'])
-                i.extend(['-tile-columns', '6'])
-                i.extend(['-static-thresh', '0'])
-                i.extend(['-frame-parallel', '0', '-auto-alt-ref', '1'])
-                i.extend(['-lag-in-frames', '25', '-g', '288', '-pix_fmt', 'yuv420p'])
+            i.extend(encoding.commands)
 
-            i.extend(['-row-mt', '1'])
             # TODO: Let user pick crf
 
-            i.extend(['-b:v', f'{bitrate:.2f}k', '-crf', '5'])
+            i.extend(['-b:v', f'{bitrate:.2f}k', '-crf', '20'])
 
             if self.sound.isChecked():
                 i.extend(['-map', '0:a:0', '-c:a', 'libopus', '-b:a', '320k'])
@@ -450,8 +439,8 @@ class GUI(QMainWindow):
                 crop = ''
             i.extend(['-filter:v', f'setpts={state["multiplier"]}*PTS{crop}'])
 
-        command_1.extend(['-f', 'webm', '-pass', '1', 'NUL'])
-        command_2.extend(['-f', f'{state["filetype"]}', '-pass', '2', '-metadata', f'title={state["target_name"]}'])
+        command_1.extend(['-f', f'{encoding.f}', '-pass', '1', 'NUL'])
+        command_2.extend(['-f', f'{encoding.f}', '-pass', '2', '-metadata', f'title={state["target_name"]}'])
 
         # com_2.extend(['-vf', f'minterpolate=fps={fps}:mi_mode=mci:mc_mode=aobmc:me=umh:vsbmc=1'])
 
@@ -459,7 +448,7 @@ class GUI(QMainWindow):
 
         commands.extend([command_1, command_2])
 
-        return commands, self.out_name.text() + '.' + state["filetype"], duration
+        return commands, self.out_name.text() + '.' + encoding.ext, duration
 
     def alert_message(self, title, text, info_text, question=False, allow_cancel=False):
         warning_window = QMessageBox(parent=self)
@@ -498,7 +487,8 @@ class GUI(QMainWindow):
             except InterruptedError as e:
                 self._log.info(f'User error: {e}')
                 return
-
+            for i in commands:
+                print(' '.join(i))
             process = Conversion(commands=commands, target_name=name, file_name=state['filename'],
                                  duration=duration)
             process.finished.connect(self._deplete_queue)
