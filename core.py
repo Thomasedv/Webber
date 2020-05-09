@@ -11,7 +11,7 @@ from PyQt5.QtMultimedia import QMediaContent
 from PyQt5.QtWidgets import *
 
 from player_widget import VideoWindow
-from utils import get_logger, color_text, FileHandler
+from utils import get_logger, color_text, FileHandler, get_stylesheet, find_file
 from worker import Conversion
 from formats import format_spec
 
@@ -53,10 +53,31 @@ class GUI(QMainWindow):
 
         self.current_file = QLineEdit('')
         self.current_file.setReadOnly(True)
+        self.tutorial_text = textwrap.dedent(f"""\
+        Drag a file to this window to open!
+        Mute video with M-key, or adjust with scroll wheel on video.
+        \n\n\
+        {color_text('Short Tutorial:', 'white','bold')}
+        
+        1. After dragging the video into the window, find the positions in the video you want to cut the video to.
+        
+        2. Use the start/stop buttons to set the timestamp. Give the file a name, use the webm option, check box for\
+         sound sound and pick a target filesize if you want a different size.
+        
+        2a. (Optional) Right-click and drag down and right on video if you want to crop it.
+        
+        2b. (Optional) Increase length-multiplier to slow down video. [Has limited use]
+        
+        4. Press convert to add the video to the conversion queue. Monitor progress here.
+        """)
+        # Needed for Rich text
+        self.tutorial_text = self.tutorial_text.replace('\n', '<br>')
 
         self.setAcceptDrops(True)
         self.textbox = QTextEdit()
         self.textbox.setReadOnly(True)
+        self.textbox.setObjectName('TextFileEdit')
+        self.textbox.setText(self.tutorial_text)
         self.textbox.setFocusPolicy(Qt.NoFocus)
 
         self.out_name = QLineEdit()
@@ -105,7 +126,8 @@ class GUI(QMainWindow):
         self.filetype.addItems(format_spec.keys())
 
         self.layout = QGridLayout()
-        self.layout.addWidget(self.current_file, 0, 0, 1, 3)
+        self.layout.addWidget(QLabel('Path:'))
+        self.layout.addWidget(self.current_file, 0, 1, 1, 2)
         self.layout.addWidget(self.textbox, 1, 0, 1, 3)
         self.layout.addWidget(QLabel('Length mul.'))
         self.layout.addWidget(self.playback_rate, 2, 1, 1, 1)
@@ -127,6 +149,7 @@ class GUI(QMainWindow):
         self.layout.addWidget(self.sound, 7, 0, Qt.AlignRight)
         self.layout.addWidget(self.startbtn, 7, 1, 1, 1)
         self.layout.addWidget(self.cancelbtn, 7, 2, 1, 1)
+
         self.layout.setColumnStretch(0, 0)
         self.layout.setColumnStretch(1, 0)
         self.layout.setColumnStretch(2, 0)
@@ -137,15 +160,47 @@ class GUI(QMainWindow):
         self.setCentralWidget(self.w)
         self.w.setLayout(self.layout)
 
+        unchecked_icon = find_file('GUI\\Icon_unchecked.ico')
+        checked_icon = find_file('GUI\\Icon_checked.ico')
+        alert_icon = find_file('GUI\\Alert.ico')
+        down_arrow_icon = find_file('GUI\\down-arrow2.ico')
+        down_arrow_icon_clicked = find_file('GUI\\down-arrow2-clicked.ico')
+
+        style_with_options = get_stylesheet() + f"""
+        QCheckBox::indicator:unchecked {{
+            image: url({unchecked_icon});
+        }}
+
+        QCheckBox::indicator:checked {{
+            image: url({checked_icon});
+        }}
+        QComboBox::down-arrow {{
+            border-image: url({down_arrow_icon});
+            height: {self.filetype.iconSize().height()}px;
+            width: {self.filetype.iconSize().width()}px;
+        }}
+
+        QComboBox::down-arrow::on {{
+            image: url({down_arrow_icon_clicked});
+            height: {self.filetype.iconSize().height()}px;
+            width: {self.filetype.iconSize().width()}px;
+        }}"""
+
+        self.setStyleSheet(style_with_options)
         self.setWindowTitle('Webber')
         self.setMinimumWidth(1000)
         self.setMinimumHeight(800)
-
         self.showMaximized()
 
     def validate_settings(self):
         # TODO: Check for errors here
+        intro = True
         while self._settings['destination'] is None:
+            if intro:
+                self.alert_message('Hello!', 'You will now be asked to pick  Destination folder',
+                                   'This is where the converted clips are placed.')
+                intro = False
+
             self.get_folder()
             if self._settings['destination'] is None:
                 result = self.alert_message('Error', 'You need to select a destionation folder!',
@@ -475,7 +530,7 @@ class GUI(QMainWindow):
     def start(self, *_):
         try:
             if self.out_name.text() in ('', ' ', '  '):
-                self.textbox.append(color_text('INVALID FILENAME!'))
+                self.append_to_tb(color_text('INVALID FILENAME!'))
                 return
 
             self.startbtn.setDisabled(True)
@@ -551,6 +606,8 @@ class GUI(QMainWindow):
                         for line in program.queue:
                             self.textbox.append('\n')
                             self.textbox.append(f'{" ".join(line)}\n')
+
+        self.textbox.append('\n\n'+self.tutorial_text)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
