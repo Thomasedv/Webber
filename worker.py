@@ -20,6 +20,7 @@ progress_pattern = re.compile(
 
 class Conversion(QThread):
     process_output = pyqtSignal(str)
+    done = pyqtSignal(int)
 
     def __init__(self, commands: list, target_name, file_name, duration):
         super(Conversion, self).__init__()
@@ -78,11 +79,13 @@ class Conversion(QThread):
                     self.queue.clear()
                     worker.kill()
                     self._log.info('Process terminated by user...')
+                    self.done.emit(worker.exitCode())
                     return
             cur_pass += 1
             if worker.exitCode():
                 self._log.error(f'Process closed with error code {worker.exitCode()}')
-                return
+                continue
+        self.done.emit(worker.exitCode())
         self._log.info('Finished all passes')
         self.current = None
 

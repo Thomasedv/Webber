@@ -27,9 +27,9 @@ def main():
     program = GUI()
 
     exit_code = app.exec()
-
+    program = None
     log.info(f'Exiting with exit code {exit_code}')
-    sys.exit(exit_code)
+    return exit_code
 
 # TODO: Require picking a folder
 # TODO: Prevent start until all require options are there.
@@ -42,4 +42,6 @@ if __name__ == '__main__':
     if cwd_was_sys32:
         log.warning(f'Working dir was system32, changed to {os.getcwd()}')
 
-    main()
+    exit_code = main()
+    # sys.exit(exit_code)
+

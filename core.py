@@ -163,6 +163,7 @@ class GUI(QMainWindow):
         self.hide()
         self._fh.force_save = True
         self._fh.save_settings(self._settings)
+        self._fh.threadpool.waitForDone()
         a0.accept()
 
     def debug_switch(self, *_):
@@ -279,7 +280,7 @@ class GUI(QMainWindow):
 
         command.extend(
             ['-hide_banner', '-nostdin', '-y',
-             '-i',  f'{state["filename"]}',
+             '-i', f'{state["filename"]}',
              '-ss', f'{state["ts_start"]}',
              '-to', f'{state["ts_end"]}'])
 
@@ -343,11 +344,12 @@ class GUI(QMainWindow):
         return state
 
     def _gen_conversion_commands(self, state):
+        encoding = format_spec[state["filetype"]]
 
-        out_path = self._settings['destination'] + '\\' + state["target_name"] + '.' + state["filetype"]
+        out_path = self._settings['destination'] + '\\' + state["target_name"] + '.' + encoding.ext
 
         if os.path.isfile(out_path) or any(
-                [state["target_name"] + '.' + state["filetype"] == i.name for i in self._queue]):
+                [state["target_name"] + '.' + encoding.ext == i.name for i in self._queue]):
             result = self.alert_message('Warning!', 'File already exists or is in the queue!',
                                         'Do you want to overwrite it?', True)
             if result != QMessageBox.Yes:
@@ -378,9 +380,6 @@ class GUI(QMainWindow):
         command_1 = []
         command_2 = []
 
-        command_1.append('-hide_banner')
-        command_1.append('-nostdin')
-
         def convert_to_h(string):
             parts = string.split(':')
             if int(parts[0]) > 59:
@@ -392,11 +391,12 @@ class GUI(QMainWindow):
         end_formatted = convert_to_h(state["end"])
         checked = False
 
-        encoding = format_spec[state["filetype"]]
-
-        for i in (command_1, command_2):
+        for p, i in enumerate([command_1, command_2]):
+            i.append('-hide_banner')
+            i.append('-nostdin')
 
             i.extend(['-y'])
+
             # TODO: Make this option??
             # i.extend(['-hwaccel', 'cuda'])
             if state["start"] != '':
@@ -408,14 +408,18 @@ class GUI(QMainWindow):
 
             i.extend(['-map', '0:v:0'])
 
-            i.extend(encoding.commands)
+            i.extend(encoding.commands.all)
+
+            if p == 0:
+                i.extend(encoding.commands.first)
+            elif p == 1:
+                i.extend(encoding.commands.second)
 
             # TODO: Let user pick crf
+            i.extend(['-b:v', f'{bitrate:.2f}k'])
 
-            i.extend(['-b:v', f'{bitrate:.2f}k', '-crf', '20'])
-
-            if self.sound.isChecked():
-                i.extend(['-map', '0:a:0', '-c:a', 'libopus', '-b:a', '320k'])
+            if self.sound.isChecked() and p == 1:
+                command_2.extend(['-map', '0:a:0', '-c:a', 'libopus', '-b:a', '320k'])
                 if float(state["multiplier"]) != 1 and not checked:
                     result = self.alert_message('Warning!',
                                                 'No sound allowed with changed duration!\n'
@@ -426,8 +430,10 @@ class GUI(QMainWindow):
                         raise InterruptedError('Stopped on command!')
                     state["multiplier"] = 1
                     checked = True  # In multi pass, this prevents repeatedly asking
-            else:
-                i.append('-an')
+            elif p == 1:
+                command_2.append('-an')
+            elif p == 0:
+                command_1.append('-an')
 
             if state["crop_area"] is not None:
                 x = int(int(self._resolution[0]) * state["crop_area"][0])
@@ -492,7 +498,7 @@ class GUI(QMainWindow):
             process = Conversion(commands=commands, target_name=name, file_name=state['filename'],
                                  duration=duration)
             process.finished.connect(self._deplete_queue)
-            process.finished.connect(self.done)
+            process.done.connect(self.done)
             process.process_output.connect(self.append_to_tb)
 
             self._queue.append(process)
@@ -500,8 +506,11 @@ class GUI(QMainWindow):
         except:
             traceback.print_exc()
 
-    def done(self, *_):
-        self.append_to_tb('Finished')
+    def done(self, code):
+        if code:
+            self.append_to_tb(f'Process encountered an error with code {code}.')
+        else:
+            self.append_to_tb('Finished successfully!')
 
     def _deplete_queue(self):
         if self._active_prog is not None and self._active_prog.isRunning():

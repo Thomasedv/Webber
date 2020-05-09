@@ -30,10 +30,11 @@ def get_logger(string):
     return logging.getLogger(string)
 
 
-def except_hook(cls, exception, traceback):
+def except_hook(cls, exception, tb):
+    import traceback
     log = get_logger('Webber.FATAL')
-    log.error('Fatal error:\n' + traceback)
-    sys.__excepthook__(cls, exception, traceback)
+    log.error(f'Fatal error:\n {traceback.format_exception(cls, exception, tb)}')
+    sys.__excepthook__(cls, exception, tb)
 
 
 # If not frozen as .exe, crashes show here
@@ -71,7 +72,7 @@ def threaded_cooldown(func):
     timer.setTimerType(Qt.VeryCoarseTimer)
 
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self, *args):
 
         if not hasattr(self, 'threadpool'):
             raise AttributeError(f'{self.__class__.__name__} instance does not have a threadpool attribute.')
@@ -79,7 +80,7 @@ def threaded_cooldown(func):
         if not hasattr(self, 'force_save'):
             raise AttributeError(f'{self.__class__.__name__} instance does not have a force_save attribute.')
 
-        worker = Task(func, self, *args, **kwargs)
+        worker = Task(func, self, *args)
 
         if timer.receivers(timer.timeout):
             timer.disconnect()
@@ -146,7 +147,7 @@ class FileHandler:
     @threaded_cooldown
     def save_settings(self, settings):
         try:
-            with open(self.settings_path, 'w') as f:
+            with open(self.settings_path, 'w', encoding='utf-8') as f:
                 json.dump(settings, f, indent=4, sort_keys=True)
                 return True
         except (OSError, IOError) as e:
