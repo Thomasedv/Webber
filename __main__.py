@@ -27,6 +27,7 @@ def main():
     program = GUI()
 
     exit_code = app.exec()
+
     program = None
     log.info(f'Exiting with exit code {exit_code}')
     return exit_code
@@ -43,5 +44,5 @@ if __name__ == '__main__':
         log.warning(f'Working dir was system32, changed to {os.getcwd()}')
 
     exit_code = main()
-    # sys.exit(exit_code)
+    sys.exit(exit_code)
 

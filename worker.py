@@ -79,7 +79,7 @@ class Conversion(QThread):
                     self.queue.clear()
                     worker.kill()
                     self._log.info('Process terminated by user...')
-                    self.done.emit(worker.exitCode())
+                    self.done.emit(123)
                     return
             cur_pass += 1
             if worker.exitCode():

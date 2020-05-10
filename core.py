@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import *
 from player_widget import VideoWindow
 from utils import get_logger, color_text, FileHandler, get_stylesheet, find_file
 from worker import Conversion
-from formats import format_spec
+from formats import format_spec, Tweaker
 
 
 class GUI(QMainWindow):
@@ -36,6 +36,9 @@ class GUI(QMainWindow):
 
         self.toggle_debug = QShortcut(QKeySequence('Ctrl+P'), self)
         self.toggle_debug.activated.connect(self.debug_switch)
+
+        self.open_tweaker = QShortcut(QKeySequence('Ctrl+E'), self)
+        self.open_tweaker.activated.connect(self.tweak_options)
 
         self.worker = QThreadPool(self)
         self.worker.setMaxThreadCount(1)
@@ -191,6 +194,12 @@ class GUI(QMainWindow):
         self.setMinimumWidth(1000)
         self.setMinimumHeight(800)
         self.showMaximized()
+
+    def tweak_options(self):
+        spec = self.filetype.currentText()
+        t = Tweaker(spec)
+        if t.exec() == QDialog.Accepted:
+            format_spec[spec] = t.get_encoding()
 
     def validate_settings(self):
         # TODO: Check for errors here
@@ -562,7 +571,9 @@ class GUI(QMainWindow):
             traceback.print_exc()
 
     def done(self, code):
-        if code:
+        if code == 123:
+            self.append_to_tb(f'Process stopped by user!')
+        elif code:
             self.append_to_tb(f'Process encountered an error with code {code}.')
         else:
             self.append_to_tb('Finished successfully!')
@@ -589,7 +600,7 @@ class GUI(QMainWindow):
 
         if self._queue:
             self.textbox.append('\n\nIn queue:\n' +
-                                '\n'.join([f'{idx}. {i.name}' for idx, i in enumerate(self._queue, 1)]))
+                                '\n'.join([f'{idx}. {i.name}' for idx, i in enumerate(self._queue, 1)])+'\n\n')
 
             if self._debug:
                 if self._active_prog is not None:
@@ -607,7 +618,7 @@ class GUI(QMainWindow):
                             self.textbox.append('\n')
                             self.textbox.append(f'{" ".join(line)}\n')
 
-        self.textbox.append('\n\n'+self.tutorial_text)
+        self.textbox.append('<br><br>'+self.tutorial_text)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
