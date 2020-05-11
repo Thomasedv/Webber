@@ -1,11 +1,14 @@
 import itertools
 from collections import namedtuple
+from functools import partial
 from itertools import tee
 
-from PyQt5.QtWidgets import QDialog, QApplication, QSpinBox, QFormLayout, QWidget, QLabel, QLineEdit, QPushButton
+from PyQt5.QtWidgets import QDialog, QApplication, QSpinBox, QFormLayout, QWidget, QLabel, QLineEdit, QPushButton, \
+    QGridLayout
 from more_itertools import consume
 from more_itertools.recipes import grouper
 
+from dialog import Dialog
 from utils import color_text, get_stylesheet
 
 encoding = namedtuple('Encoding', ['ext', 'f', 'commands'])
@@ -42,7 +45,7 @@ av1_params = passes([
     '-auto-alt-ref', '1',
     '-lag-in-frames', '25',
     '-strict', 'experimental',
-    '-crf', '30',
+    # '-crf', '30',
     '-static-thresh', '0',
     '-frame-parallel', '0',
 ], [
@@ -79,26 +82,45 @@ class Tweaker(QDialog):
 
         self.create_form()
 
+    def add_row(self, pass_dict: dict):
+        idx = self.form.indexOf(self.sender())
+        dia = Dialog(self, 'Pick a parameter!', 'Select the name of the option to add!')
+        if dia.exec() != QDialog.Accepted:
+            return
+
+        key = dia.answer()
+
+        value = QLineEdit('')
+        value.textChanged.connect(partial(self.update_pair, pass_dict, key))
+        self.form.insertRow(idx, key, value)
+        # TODO: Duplicate detection
+
+    def update_pair(self, pair_map: dict, key: str, value: str):
+        pair_map.update({key: value})
+
     def create_form(self):
-        form = QFormLayout()
+        self.form = form = QFormLayout()
         for pass_name, pass_dict in zip(('All passes', 'First Pass', 'Second Pass'),
                                         (self.all_pass_pairs, self.first_pass_pairs, self.second_pass_pairs)):
-            form.addRow(QLabel(color_text(pass_name, color='limegreen')))
+
+            add_btn = QPushButton('Add')
+            add_btn.clicked.connect(partial(self.add_row, pass_dict))
+
+            form.addRow(QLabel(color_text(pass_name, color='limegreen')), add_btn)
             for key, value in pass_dict.items():
                 value_field = QLineEdit(value)
-                value_field.textChanged.connect(lambda v, k=key: self.all_pass_pairs.update({k: v}))
+                value_field.textChanged.connect(partial(self.update_pair, pass_dict, key))
                 form.addRow(key, value_field)
             form.addRow(self.ok_button, self.cancel_button)
+
         self.setLayout(form)
 
-    def closeEvent(self, a0) -> None:
+    def get_encoding(self):
         for pass_list, pass_pair in zip([self.all_pass, self.first_pass, self.second_pass],
                                         [self.all_pass_pairs, self.first_pass_pairs, self.second_pass_pairs]):
             pass_list.clear()
             consume(pass_list.extend([k, v]) for k, v in pass_pair.items())
-        a0.accept()
 
-    def get_encoding(self):
         p = passes(self.all_pass, self.first_pass, self.second_pass)
         return encoding(self.enc.ext, self.enc.f, p)
 
