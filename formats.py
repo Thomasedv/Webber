@@ -18,7 +18,7 @@ format_spec = {}
 webm_params = passes([
     '-c:v', 'libvpx-vp9',
     '-tile-columns', '3',
-    '-tile-rows', '2',
+    '-tile-rows', '1',
     '-threads', '12',
     '-row-mt', '1',
     '-static-thresh', '0',
@@ -31,21 +31,20 @@ webm_params = passes([
 ], [
     '-cpu-used', '1'
 ], [
-    '-cpu-used', '0'
+    '-cpu-used', '1'
 ])
 
 format_spec['Webm'] = encoding('webm', 'webm', webm_params)
 
 av1_params = passes([
     '-c:v', 'libaom-av1',
-    '-tiles', '4x3',
+    '-tiles', '4x2',
     '-threads', '12',
     '-pix_fmt', 'yuv420p',
     '-row-mt', '1',
     '-auto-alt-ref', '1',
     '-lag-in-frames', '25',
     '-strict', 'experimental',
-    # '-crf', '30',
     '-static-thresh', '0',
     '-frame-parallel', '0',
 ], [
@@ -89,6 +88,8 @@ class Tweaker(QDialog):
             return
 
         key = dia.answer()
+        if key in pass_dict:
+            return
 
         value = QLineEdit('')
         value.textChanged.connect(partial(self.update_pair, pass_dict, key))
@@ -96,6 +97,9 @@ class Tweaker(QDialog):
         # TODO: Duplicate detection
 
     def update_pair(self, pair_map: dict, key: str, value: str):
+        if not key.startswith('-'):
+            key = '-' + key
+
         pair_map.update({key: value})
 
     def create_form(self):

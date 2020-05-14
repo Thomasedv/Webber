@@ -381,7 +381,7 @@ class GUI(QMainWindow):
 
         valid_name = re.match(r'(^ *$)', state['filename']) is None
         if not valid_name:
-            self.alert_message('Invalid filename', 'The target filename is not valid!', '')
+            self.alert_message('No Target file!', 'The target filename is not selected or incorrect!', '')
             raise InterruptedError('Filename not valid')
 
         stamp = 'start'
@@ -599,8 +599,8 @@ class GUI(QMainWindow):
         self.textbox.setText(text)
 
         if self._queue:
-            self.textbox.append('\n\nIn queue:\n' +
-                                '\n'.join([f'{idx}. {i.name}' for idx, i in enumerate(self._queue, 1)])+'\n\n')
+            self.textbox.append(color_text('\n\nIn queue:\n', color='white'))
+            self.textbox.append('\n'.join([f'{idx}. {i.name}' for idx, i in enumerate(self._queue, 1)])+'\n\n')
 
             if self._debug:
                 if self._active_prog is not None:

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 import sys
 import textwrap
@@ -6,6 +7,7 @@ import json
 import os
 import sys
 from functools import wraps, partial
+from typing import Tuple
 
 from PyQt5.QtCore import QThreadPool, QTimer, Qt, QRunnable
 from PyQt5.QtGui import QColor
@@ -105,10 +107,10 @@ def threaded_cooldown(func):
     return wrapper
 
 
-def color_text(text: str, color: str = 'darkorange', weight: str = 'bold', sections: tuple = None) -> str:
+def color_text(text: str, color: str = 'darkorange', weight: str = 'bold', sections: Tuple[int, int] = None) -> str:
     """
     Formats a piece of string to be colored/bolded.
-    Also supports having a section of the string colored.
+    Also supports having a just a section of the string colored.
     """
     text = text.replace('\n', '<br>')
 

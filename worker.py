@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-from utils import get_logger
+from utils import get_logger, color_text
 
 progress_pattern = re.compile(
     r'(frame|fps|size|time|bitrate|speed)\s*\=\s*(\S+)'
@@ -43,6 +43,7 @@ class Conversion(QThread):
 
     def run(self):
         try:
+            start = time.time()
             self._log.info('Fetching process framerate..')
             p = QProcess()
             p.start(
@@ -78,15 +79,17 @@ class Conversion(QThread):
                 if self.abort:
                     self.queue.clear()
                     worker.kill()
-                    self._log.info('Process terminated by user...')
+                    self._log.info(f'Process terminated by user... '
+                                   f'Process was active for {time.time() - start} seconds.')
                     self.done.emit(123)
                     return
             cur_pass += 1
             if worker.exitCode():
-                self._log.error(f'Process closed with error code {worker.exitCode()}')
+                self._log.error(f'Process closed with error code {worker.exitCode()}. '
+                                f'Process was active for {time.time() - start} seconds.')
                 continue
         self.done.emit(worker.exitCode())
-        self._log.info('Finished all passes')
+        self._log.info(f'Finished all passes! Process was active for {time.time() - start} seconds.')
         self.current = None
 
     def out_stream(self, prog, cur_pass, framerate):
@@ -116,17 +119,18 @@ class Conversion(QThread):
                 percent = int(int(items['frame']) / (framerate * self.dur) * 100)
                 percent = 100 if percent > 100 else percent
 
-                output = f'\nWorking...\n' \
-                         f'Target name: {self.name}\n' \
-                         f'Target bitrate: {self.bitrate + "b" if self.bitrate is not None else "Nan"}\n' \
-                         f'Pass: {cur_pass}\n' \
-                         f'Progress: {percent}% \n'
+                output = color_text(f'\nWorking...\n', 'white')
+                output += f'Target name: {self.name}\n' \
+                          f'Target bitrate: {self.bitrate + "b" if self.bitrate is not None else "Nan"}\n' \
+                          f'Pass: {cur_pass}\n' \
+                          f'Progress: {percent}% \n'
 
                 output += f'Frame {items["frame"]} of {math.ceil(framerate * self.dur)}' + '\n' + f'Time: {items["time"]}'
 
             else:
-                output = f'\nWorking...\n' \
-                         f'Target name: {self.name}\n' \
+                output = color_text(f'\nWorking...\n', 'white')
+
+                output += f'Target name: {self.name}\n' \
                          f'Target bitrate: {self.bitrate + "b" if self.bitrate is not None else "Nan"}\n' \
                          f'Pass: {cur_pass}\n'
 
@@ -135,4 +139,4 @@ class Conversion(QThread):
             traceback.print_exc()
 
         else:
-            self.process_output.emit(output)
+            self.process_output.emit(output.replace('\n', '<br>'))
