@@ -1,10 +1,8 @@
-import itertools
+from collections import namedtuple
 from collections import namedtuple
 from functools import partial
-from itertools import tee
 
-from PyQt5.QtWidgets import QDialog, QApplication, QSpinBox, QFormLayout, QWidget, QLabel, QLineEdit, QPushButton, \
-    QGridLayout
+from PyQt5.QtWidgets import QDialog, QApplication, QFormLayout, QLabel, QLineEdit, QPushButton
 from more_itertools import consume
 from more_itertools.recipes import grouper
 
@@ -17,7 +15,7 @@ format_spec = {}
 
 webm_params = passes([
     '-c:v', 'libvpx-vp9',
-    '-tile-columns', '3',
+    '-tile-columns', '2',
     '-tile-rows', '1',
     '-threads', '12',
     '-row-mt', '1',
@@ -25,8 +23,8 @@ webm_params = passes([
     '-frame-parallel', '0',
     '-auto-alt-ref', '6',
     '-lag-in-frames', '25',
-    '-g', '240',
-    '-crf', '20',
+    '-g', '120',
+    '-crf', '30',
     '-pix_fmt', 'yuv420p'
 ], [
     '-cpu-used', '1'
@@ -38,7 +36,7 @@ format_spec['Webm'] = encoding('webm', 'webm', webm_params)
 
 av1_params = passes([
     '-c:v', 'libaom-av1',
-    '-tiles', '4x2',
+    '-tiles', '2x1',
     '-threads', '12',
     '-pix_fmt', 'yuv420p',
     '-row-mt', '1',
@@ -53,7 +51,7 @@ av1_params = passes([
     '-cpu-used', '6',
 ])
 
-format_spec['AV1'] = encoding('mkv', 'matroska', av1_params)
+format_spec['AV1'] = encoding('webm', 'webm', av1_params)
 
 
 class Tweaker(QDialog):

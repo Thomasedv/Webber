@@ -3,11 +3,11 @@ import traceback
 import typing
 
 from PyQt5.QtCore import Qt, QSizeF
-from PyQt5.QtGui import QShowEvent
+from PyQt5.QtGui import QShowEvent, QPainter
 from PyQt5.QtMultimedia import QMediaPlayer
 from PyQt5.QtMultimediaWidgets import QGraphicsVideoItem
 from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel,
-                             QSizePolicy, QSlider, QStyle, QVBoxLayout, QGraphicsScene, QProxyStyle)
+                             QSizePolicy, QStyle, QVBoxLayout, QGraphicsScene, QProxyStyle)
 from PyQt5.QtWidgets import QWidget, QPushButton
 
 from relay_widgets import RelayPushButton, RelaySlider
@@ -24,13 +24,17 @@ class VideoWindow(QWidget):
         self._scene = QGraphicsScene(self)
 
         self.videoWidget = QGraphicsVideoItem()
-        self.videoWidget.setSize(QSizeF(1920, 1080))
-
+        # TODO: Set to video or screen resolution?
+        self.videoWidget.setSize(QSizeF(2560, 1440))
+        # self.videoWidget.setTransform(Qt.SmoothTransformation)
+        print(self.videoWidget.transform())
         self.overlay = VideoOverlay(self.videoWidget, self.mediaPlayer)
 
         self._gv = GraphicsView(self._scene, parent=self)
         self._gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._gv.setRenderHint(QPainter.Antialiasing)
+        # self._gv.setTransform(Qt.SmoothTransformation)
 
         self._scene.addItem(self.videoWidget)
         self._scene.addWidget(self.overlay)

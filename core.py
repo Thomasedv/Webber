@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import textwrap
+import time
 import traceback
 from collections import deque
 
@@ -10,10 +11,10 @@ from PyQt5.QtGui import *
 from PyQt5.QtMultimedia import QMediaContent
 from PyQt5.QtWidgets import *
 
+from formats import format_spec, Tweaker
 from player_widget import VideoWindow
 from utils import get_logger, color_text, FileHandler, get_stylesheet, find_file
 from worker import Conversion
-from formats import format_spec, Tweaker
 
 
 class GUI(QMainWindow):
@@ -410,6 +411,8 @@ class GUI(QMainWindow):
     def _gen_conversion_commands(self, state):
         encoding = format_spec[state["filetype"]]
 
+        rand_passfilename = f'ffmpeg2pass{str(time.time())[-5:]}'
+
         out_path = self._settings['destination'] + '\\' + state["target_name"] + '.' + encoding.ext
 
         if os.path.isfile(out_path) or any(
@@ -432,9 +435,17 @@ class GUI(QMainWindow):
             self.alert_message('Target size too small!',
                                'The video is too long for the target bitrate!', '')
             raise InterruptedError('Too small target filesize, too low bitrate')
+        elif bitrate < 512:
+            result = self.alert_message('Warning!',
+                                        'The current bitrate is very low, and will probably not work well.',
+                                        'Do you want to stop encoding?',
+                                        True)
+            if result == QMessageBox.Yes:
+                raise InterruptedError('Stopped on command! Too low bitrate selected.')
 
         self._log.debug(textwrap.dedent(f"""
-                            Target bitrate: {bitrate}
+                            Working dir: {os.getcwd()}
+                            Target bitrate: {bitrate} kbps
                             Target destination: {out_path}
                             Start: {state['ts_start']} ({t0:.3f} seconds)
                             Start: {state['ts_end']} ({tf:.3f} seconds)
@@ -483,7 +494,7 @@ class GUI(QMainWindow):
             i.extend(['-b:v', f'{bitrate:.2f}k'])
 
             if self.sound.isChecked() and p == 1:
-                command_2.extend(['-map', '0:a:0', '-c:a', 'libopus', '-b:a', '320k'])
+                command_2.extend(['-map', '0:a', '-c:a', 'libopus', '-b:a', '320k'])
                 if float(state["multiplier"]) != 1 and not checked:
                     result = self.alert_message('Warning!',
                                                 'No sound allowed with changed duration!\n'
@@ -509,8 +520,9 @@ class GUI(QMainWindow):
                 crop = ''
             i.extend(['-filter:v', f'setpts={state["multiplier"]}*PTS{crop}'])
 
-        command_1.extend(['-f', f'{encoding.f}', '-pass', '1', 'NUL'])
-        command_2.extend(['-f', f'{encoding.f}', '-pass', '2', '-metadata', f'title={state["target_name"]}'])
+        command_1.extend(['-f', f'{encoding.f}', '-passlogfile', f'{rand_passfilename}', '-pass', '1', 'NUL'])
+        command_2.extend(['-f', f'{encoding.f}', '-passlogfile', f'{rand_passfilename}', '-pass', '2',
+                          '-metadata', f'title={state["target_name"]}'])
 
         # com_2.extend(['-vf', f'minterpolate=fps={fps}:mi_mode=mci:mc_mode=aobmc:me=umh:vsbmc=1'])
 
@@ -518,7 +530,13 @@ class GUI(QMainWindow):
 
         commands.extend([command_1, command_2])
 
-        return commands, self.out_name.text() + '.' + encoding.ext, duration
+        return commands, self.out_name.text() + '.' + encoding.ext, duration, rand_passfilename
+
+    def remove_pass_file(self, passlogfile):
+        for file in os.listdir('.'):
+            if file.startswith(passlogfile) and file.endswith('.log'):
+                os.remove(file)
+                break
 
     def alert_message(self, title, text, info_text, question=False, allow_cancel=False):
         warning_window = QMessageBox(parent=self)
@@ -552,7 +570,7 @@ class GUI(QMainWindow):
                 elif self.cut.isChecked():
                     commands, name, duration = self._gen_cut_commands(state)
                 else:
-                    commands, name, duration = self._gen_conversion_commands(state)
+                    commands, name, duration, passfile = self._gen_conversion_commands(state)
 
             except InterruptedError as e:
                 self._log.info(f'User error: {e}')
@@ -563,6 +581,7 @@ class GUI(QMainWindow):
                                  duration=duration)
             process.finished.connect(self._deplete_queue)
             process.done.connect(self.done)
+            process.done.connect(lambda f=passfile: self.remove_pass_file(f))
             process.process_output.connect(self.append_to_tb)
 
             self._queue.append(process)
@@ -649,8 +668,13 @@ class GUI(QMainWindow):
             f'stream=width,height -of csv=s=x:p=0')
         p.waitForStarted()
         p.waitForFinished()
+        print(p.exitCode())
         self._resolution = p.readAll().data().decode('utf-8', 'replace').strip().split('x')
-        self._log.debug(f'Resolution of video is {self._resolution[0]}x{self._resolution[1]}')
+        try:
+            self._log.debug(f'Resolution of video is {self._resolution[0]}x{self._resolution[1]}')
+        except:
+            traceback.print_exc()
+
         self.mediaplayer.mediaPlayer.setMedia(QMediaContent(file))
 
         self.mediaplayer.playButton.setEnabled(True)

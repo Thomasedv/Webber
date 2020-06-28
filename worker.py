@@ -1,15 +1,10 @@
+import math
+import re
 import time
 import traceback
-import math
 from collections import deque
-from functools import partial
 
-import subprocess
-import re
-
-from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 
 from utils import get_logger, color_text
 
