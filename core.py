@@ -92,7 +92,11 @@ class GUI(QMainWindow):
         self.playback_rate = QLineEdit('1.0')
 
         self.sound = QCheckBox('Sound')
-        self.sound.setLayoutDirection(Qt.RightToLeft)
+        self.sound.setLayoutDirection(Qt.LeftToRight)
+        self.sound.stateChanged.connect(self._disable)
+
+        self.merge = QCheckBox('Merge Audio')
+        self.merge.setLayoutDirection(Qt.LeftToRight)
 
         self.trim = QCheckBox('Split')
         self.trim.setToolTip('Splits video into 3 parts using start/end\nDoes not re-encode if video is not cropped')
@@ -129,40 +133,69 @@ class GUI(QMainWindow):
         # TODO include more filetypes here!
         self.filetype.addItems(format_spec.keys())
 
-        self.layout = QGridLayout()
-        self.layout.addWidget(QLabel('Path:'))
-        self.layout.addWidget(self.current_file, 0, 1, 1, 2)
-        self.layout.addWidget(self.textbox, 1, 0, 1, 3)
-        self.layout.addWidget(QLabel('Length mul.'))
-        self.layout.addWidget(self.playback_rate, 2, 1, 1, 1)
+        self.top_layout = QHBoxLayout()
 
-        self.layout.addWidget(self.trim, 2, 2, 1, 1)
+        self.infobox = QGridLayout()
+        self.infobox.addWidget(QLabel('Path:'))
+        self.infobox.addWidget(self.current_file, 0, 1, 1, 2)
+        self.infobox.addWidget(self.textbox, 1, 0, 1, 3)
+        self.infobox.addWidget(QLabel('Length mul.'))
+        self.infobox.addWidget(self.playback_rate, 2, 1, 1, 1)
 
-        self.layout.addWidget(QLabel('Target Name:'), 3, 0, 1, 1)
-        self.layout.addWidget(self.out_name, 3, 1, 1, 1)
-        self.layout.addWidget(self.filetype, 3, 2, 1, 1)
+        self.infobox.addWidget(self.trim, 2, 2, 1, 1)
 
-        self.layout.addWidget(QLabel('Start time:'))
-        self.layout.addWidget(self.start_time, 4, 1, 1, 2)
-        self.layout.addWidget(QLabel('End time:'))
-        self.layout.addWidget(self.end_time, 5, 1, 1, 2)
-        self.layout.addWidget(QLabel('Size MB:'))
-        self.layout.addWidget(self.bitrate, 6, 1, 1, 1)
-        self.layout.addWidget(self.cut, 6, 2, 1, 1)
+        self.infobox.addWidget(QLabel('Target Name:'), 3, 0, 1, 1)
+        self.infobox.addWidget(self.out_name, 3, 1, 1, 1)
+        self.infobox.addWidget(self.filetype, 3, 2, 1, 1)
 
-        self.layout.addWidget(self.sound, 7, 0, Qt.AlignRight)
-        self.layout.addWidget(self.startbtn, 7, 1, 1, 1)
-        self.layout.addWidget(self.cancelbtn, 7, 2, 1, 1)
+        self.infobox.addWidget(QLabel('Start time:'))
+        self.infobox.addWidget(self.start_time, 4, 1, 1, 2)
+        self.infobox.addWidget(QLabel('End time:'))
+        self.infobox.addWidget(self.end_time, 5, 1, 1, 2)
+        self.infobox.addWidget(QLabel('Size MB:'))
+        self.infobox.addWidget(self.bitrate, 6, 1, 1, 1)
+        self.infobox.addWidget(self.cut, 6, 2, 1, 1)
 
-        self.layout.setColumnStretch(0, 0)
-        self.layout.setColumnStretch(1, 0)
-        self.layout.setColumnStretch(2, 0)
-        self.layout.setColumnStretch(3, 2)
-        self.layout.addWidget(self.mediaplayer, 0, 3, 7, 4)
+        self.infobox.addWidget(self.sound, 7, 0, Qt.AlignLeft)
+        self.infobox.addWidget(self.startbtn, 7, 1, 1, 1)
+        self.infobox.addWidget(self.cancelbtn, 7, 2, 1, 1)
+
+        self.infobox.addWidget(self.merge, 8, 0, 1, 1, Qt.AlignLeft)
+
+        # self.layout = QGridLayout()
+        # self.layout.addWidget(QLabel('Path:'))
+        # self.layout.addWidget(self.current_file, 0, 1, 1, 2)
+        # self.layout.addWidget(self.textbox, 1, 0, 1, 3)
+        # self.layout.addWidget(QLabel('Length mul.'))
+        # self.layout.addWidget(self.playback_rate, 2, 1, 1, 1)
+        #
+        # self.layout.addWidget(self.trim, 2, 2, 1, 1)
+        #
+        # self.layout.addWidget(QLabel('Target Name:'), 3, 0, 1, 1)
+        # self.layout.addWidget(self.out_name, 3, 1, 1, 1)
+        # self.layout.addWidget(self.filetype, 3, 2, 1, 1)
+        #
+        # self.layout.addWidget(QLabel('Start time:'))
+        # self.layout.addWidget(self.start_time, 4, 1, 1, 2)
+        # self.layout.addWidget(QLabel('End time:'))
+        # self.layout.addWidget(self.end_time, 5, 1, 1, 2)
+        # self.layout.addWidget(QLabel('Size MB:'))
+        # self.layout.addWidget(self.bitrate, 6, 1, 1, 1)
+        # self.layout.addWidget(self.cut, 6, 2, 1, 1)
+        #
+        # self.layout.addWidget(self.sound, 7, 0, Qt.AlignRight)
+        # self.layout.addWidget(self.startbtn, 7, 1, 1, 1)
+        # self.layout.addWidget(self.cancelbtn, 7, 2, 1, 1)
+
+        # self.video_box = QVBoxLayout(self)
+        # self.video_box.addWidget(self.mediaplayer)
+
+        self.top_layout.addLayout(self.infobox, stretch=0)
+        self.top_layout.addWidget(self.mediaplayer, stretch=1)
 
         self.w = QWidget(self)
         self.setCentralWidget(self.w)
-        self.w.setLayout(self.layout)
+        self.w.setLayout(self.top_layout)
 
         unchecked_icon = find_file('GUI\\Icon_unchecked.ico')
         checked_icon = find_file('GUI\\Icon_checked.ico')
@@ -283,9 +316,14 @@ class GUI(QMainWindow):
             w = int(int(self._resolution[0]) * state["crop_area"][2])
             h = int(int(self._resolution[1]) * state["crop_area"][3])
 
-            conversion_style = ['-crf', '18', '-filter:v', f'crop={w}:{h}:{x}:{y}', '-acodec', 'copy']
+            conversion_style = ['-crf', '18', '-filter:v', f'crop={w}:{h}:{x}:{y}']
         else:
-            conversion_style = ['-vcodec', 'copy', '-acodec', 'copy']
+            conversion_style = ['-vcodec', 'copy']
+
+        if self.sound.isChecked():
+            conversion_style.extend(['-acodec', 'copy'])
+        else:
+            conversion_style.extend(['-an'])
 
         commands = list()
         for i in range(3):
@@ -327,7 +365,18 @@ class GUI(QMainWindow):
         # self.out_name.setDisabled(state)
         self.bitrate.setDisabled(state)
         self.playback_rate.setDisabled(state)
+
+        # Disable sound for trim option
         self.sound.setDisabled(self.trim.isChecked())
+        if self.trim.isChecked():
+            self.sound.setChecked(False)
+
+        # Disable audio merge for sound off
+        self.merge.setDisabled(not self.sound.isChecked())
+
+        # Uncheck when audio off
+        if not self.sound.isChecked() or not self.sound.isEnabled():
+            self.merge.setChecked(False)
 
     def _gen_cut_commands(self, state):
         """
@@ -373,6 +422,7 @@ class GUI(QMainWindow):
             ts_start=self.start_time.text(),
             ts_end=self.end_time.text(),
             filename=re.sub(r'^[^\\/:"*?<>|]+$', '', self.current_file.text()),
+            merge_audio=self.merge.isChecked(),
             target_size=float(self.bitrate.text()),
             filetype=self.filetype.currentText(),
             target_name=self.out_name.text(),
@@ -494,7 +544,12 @@ class GUI(QMainWindow):
             i.extend(['-b:v', f'{bitrate:.2f}k'])
 
             if self.sound.isChecked() and p == 1:
-                command_2.extend(['-map', '0:a', '-c:a', 'libopus', '-b:a', '320k'])
+                if state['merge_audio']:
+                    command_2.extend(['-filter_complex', '[0:a:0][0:a:1]amerge=inputs=2[a]', '-map', "[a]",
+                                      '-c:a', 'libopus', '-ac', '2', '-b:a', '320k'])
+                else:
+                    command_2.extend(['-map', '0:a?', '-c:a', 'libopus', '-b:a', '320k'])
+
                 if float(state["multiplier"]) != 1 and not checked:
                     result = self.alert_message('Warning!',
                                                 'No sound allowed with changed duration!\n'
@@ -534,7 +589,8 @@ class GUI(QMainWindow):
 
     def remove_pass_file(self, passlogfile):
         for file in os.listdir('.'):
-            if file.startswith(passlogfile) and file.endswith('.log'):
+            print((passlogfile))
+            if file.startswith(str(passlogfile)) and file.endswith('.log'):
                 os.remove(file)
                 break
 
@@ -676,11 +732,15 @@ class GUI(QMainWindow):
             traceback.print_exc()
 
         self.mediaplayer.mediaPlayer.setMedia(QMediaContent(file))
-
         self.mediaplayer.playButton.setEnabled(True)
         self.mediaplayer.trim_btn.setDisabled(False)
         self.mediaplayer.trim2_btn.setDisabled(False)
         self.current_file.setText(str(file.toLocalFile()))
+        self.mediaplayer.mediaPlayer.mediaStatusChanged.connect(self.set_end_time)
+
+    def set_end_time(self):
+        print('Called')
+        self.end_time.setText(self.get_player_time(self.mediaplayer.mediaPlayer.duration()))
 
     def keyPressEvent(self, event):
         modifiers = QApplication.keyboardModifiers()

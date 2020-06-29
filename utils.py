@@ -1,11 +1,10 @@
 from __future__ import annotations
-import logging
-import sys
-import textwrap
-from copy import deepcopy
+
 import json
+import logging
 import os
 import sys
+from copy import deepcopy
 from functools import wraps, partial
 from typing import Tuple
 
@@ -404,6 +403,11 @@ QComboBox::drop-down {{
 QComboBox::disabled {{
     color: {background_light};
 }}
+
+QCheckBox::disabled {{
+    color: {text_shaded};
+}}
+
 
 """
 
