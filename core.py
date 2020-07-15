@@ -621,6 +621,7 @@ class GUI(QMainWindow):
 
             state = self.load_options()
             try:
+                passfile = None
                 if self.trim.isChecked():
                     commands, name, duration = self._gen_split_commands(state)
                 elif self.cut.isChecked():
@@ -637,7 +638,8 @@ class GUI(QMainWindow):
                                  duration=duration)
             process.finished.connect(self._deplete_queue)
             process.done.connect(self.done)
-            process.done.connect(lambda f=passfile: self.remove_pass_file(f))
+            if passfile is not None:
+                process.done.connect(lambda f=passfile: self.remove_pass_file(f))
             process.process_output.connect(self.append_to_tb)
 
             self._queue.append(process)
