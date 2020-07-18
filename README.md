@@ -23,7 +23,7 @@ In general, this is made to do a job, a tool of functionality, but it's just cob
 - Press M to mute the video
 - Use the scroll-wheel to increase/decrease the volume. 
 - Left/Right skips 5 seconds forward/backwards. 
--(There are some focus issues, so you might need to click screen for some playback controls takes effect, to be improved if needed.)
+- (There are some focus issues, so you might need to click screen for some playback controls takes effect, to be improved if needed.)
 
 # How to use: 
 - Drag video to load it. 
