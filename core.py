@@ -315,7 +315,7 @@ class GUI(QMainWindow):
             y = int(int(self._resolution[1]) * state["crop_area"][1])
             w = int(int(self._resolution[0]) * state["crop_area"][2])
             h = int(int(self._resolution[1]) * state["crop_area"][3])
-
+            # TODO: Use regular encoding options here.
             conversion_style = ['-crf', '18', '-filter:v', f'crop={w}:{h}:{x}:{y}']
         else:
             conversion_style = ['-vcodec', 'copy']
@@ -403,6 +403,7 @@ class GUI(QMainWindow):
             y = int(int(self._resolution[1]) * state["crop_area"][1])
             w = int(int(self._resolution[0]) * state["crop_area"][2])
             h = int(int(self._resolution[1]) * state["crop_area"][3])
+            # TODO: Use regular encoding options here.
 
             command.extend(['-crf', '18', '-filter:v', f'crop={w}:{h}:{x}:{y}', '-acodec', 'copy'])
         else:

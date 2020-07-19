@@ -1,5 +1,4 @@
 from collections import namedtuple
-from collections import namedtuple
 from functools import partial
 
 from PyQt5.QtWidgets import QDialog, QApplication, QFormLayout, QLabel, QLineEdit, QPushButton
@@ -32,13 +31,13 @@ webm_params = passes([
     '-cpu-used', '1'
 ])
 
-format_spec['Webm'] = encoding('webm', 'webm', webm_params)
+format_spec['VP9'] = encoding('webm', 'webm', webm_params)
 
 av1_params = passes([
     '-c:v', 'libaom-av1',
     '-tiles', '2x1',
     '-threads', '12',
-    '-pix_fmt', 'yuv420p',
+    '-pix_fmt', 'yuv420p10le',
     '-row-mt', '1',
     '-auto-alt-ref', '1',
     '-lag-in-frames', '25',
@@ -51,6 +50,7 @@ av1_params = passes([
     '-cpu-used', '6',
 ])
 
+# Orignially had mkv as filetype
 format_spec['AV1'] = encoding('webm', 'webm', av1_params)
 
 
@@ -129,6 +129,6 @@ class Tweaker(QDialog):
 
 if __name__ == '__main__':
     app = QApplication([])
-    t = Tweaker('Webm')
+    t = Tweaker('VP9')
     if t.exec() == QDialog.Accepted:
         print(t.get_encoding())
