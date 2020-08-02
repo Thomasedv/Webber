@@ -1,9 +1,9 @@
-import math
 import re
 import time
 import traceback
 from collections import deque
 
+import math
 from PyQt5.QtCore import *
 
 from utils import get_logger, color_text
@@ -62,6 +62,7 @@ class Conversion(QThread):
         workers = []
         while self.queue:
             self.current = commands = self.queue.popleft()
+
             worker = QProcess()
             workers.append(worker)
             worker.setWorkingDirectory('.')

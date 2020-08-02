@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 
 import os
 import sys
@@ -28,8 +28,12 @@ def main():
 
     exit_code = app.exec()
 
+    # Clear memory
     program = None
+    app = None
+
     log.info(f'Exiting with exit code {exit_code}')
+
     return exit_code
 
 # TODO: Require picking a folder
@@ -45,4 +49,3 @@ if __name__ == '__main__':
 
     exit_code = main()
     sys.exit(exit_code)
-

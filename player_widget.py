@@ -19,7 +19,7 @@ class VideoWindow(QWidget):
     def __init__(self, parent=None):
         super(VideoWindow, self).__init__(parent=parent)
 
-        self.mediaPlayer = QMediaPlayer(None, QMediaPlayer.VideoSurface)
+        self.mediaPlayer = QMediaPlayer(self, QMediaPlayer.VideoSurface)
 
         self._scene = QGraphicsScene(self)
 
@@ -27,7 +27,7 @@ class VideoWindow(QWidget):
         # TODO: Set to video or screen resolution?
         self.videoWidget.setSize(QSizeF(2560, 1440))
         # self.videoWidget.setTransform(Qt.SmoothTransformation)
-        print(self.videoWidget.transform())
+        # print(self.videoWidget.transform())
         self.overlay = VideoOverlay(self.videoWidget, self.mediaPlayer)
 
         self._gv = GraphicsView(self._scene, parent=self)
@@ -39,6 +39,7 @@ class VideoWindow(QWidget):
         self._scene.addItem(self.videoWidget)
         self._scene.addWidget(self.overlay)
 
+        # TODO: FIX THESE MONSTROCITIES JESUS
         def temp1(*_):
             if not self.mediaPlayer.media().isNull():
                 is_full = self.videoWidget.isFullScreen()
@@ -158,10 +159,11 @@ class VideoWindow(QWidget):
 
     def media_status_change(self, status):
         if status == QMediaPlayer.LoadedMedia:
-            rect = self._scene.itemsBoundingRect()
-            self._scene.setSceneRect(rect)
-            self._gv.fitInView(self.videoWidget, Qt.KeepAspectRatio)
             try:
+                rect = self._scene.itemsBoundingRect()
+                self._scene.setSceneRect(rect)
+                self._gv.fitInView(self.videoWidget, Qt.KeepAspectRatio)
+
                 self.mediaPlayer.blockSignals(True)
                 self.mediaPlayer.setMuted(True)
                 self.mediaPlayer.play()

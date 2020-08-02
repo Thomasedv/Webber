@@ -35,15 +35,19 @@ format_spec['VP9'] = encoding('webm', 'webm', webm_params)
 
 av1_params = passes([
     '-c:v', 'libaom-av1',
-    '-tiles', '2x1',
+    '-tiles', '2x2',
     '-threads', '12',
     '-pix_fmt', 'yuv420p10le',
     '-row-mt', '1',
-    '-auto-alt-ref', '1',
+    # '-auto-alt-ref', '1',
     '-lag-in-frames', '25',
     '-strict', 'experimental',
     '-static-thresh', '0',
     '-frame-parallel', '0',
+    '-g', '120',
+    '-aq-mode', '-1',
+    '-arnr-strength', '-1'
+
 ], [
     '-cpu-used', '8',
 ], [

@@ -259,9 +259,13 @@ class GUI(QMainWindow):
 
     def closeEvent(self, a0) -> None:
         self.hide()
+
+        self.mediaplayer.disconnect()
+        self.mediaplayer.mediaPlayer.disconnect()
         self._fh.force_save = True
         self._fh.save_settings(self._settings)
         self._fh.threadpool.waitForDone()
+
         a0.accept()
 
     def debug_switch(self, *_):
@@ -532,7 +536,7 @@ class GUI(QMainWindow):
 
             i.extend(['-i', f'{state["filename"]}'])
 
-            i.extend(['-map', '0:v:0'])
+            i.extend(['-map', '0:v:0', '-map', '0:s'])
 
             i.extend(encoding.commands.all)
 
@@ -541,8 +545,10 @@ class GUI(QMainWindow):
             elif p == 1:
                 i.extend(encoding.commands.second)
 
-            # TODO: Let user pick crf
-            i.extend(['-b:v', f'{bitrate:.2f}k'])
+            i.extend(['-b:v', f'{bitrate:.2f}k',
+                      '-maxrate', f'{bitrate * 2:.2f}k',
+                      '-bufsize', f'{bitrate * 3:.2f}k'
+                      ])
 
             if self.sound.isChecked() and p == 1:
                 if state['merge_audio']:
@@ -571,10 +577,17 @@ class GUI(QMainWindow):
                 y = int(int(self._resolution[1]) * state["crop_area"][1])
                 w = int(int(self._resolution[0]) * state["crop_area"][2])
                 h = int(int(self._resolution[1]) * state["crop_area"][3])
-                crop = f',crop={w}:{h}:{x}:{y}'
+                crop = f'crop={w}:{h}:{x}:{y}'
             else:
                 crop = ''
-            i.extend(['-filter:v', f'setpts={state["multiplier"]}*PTS{crop}'])
+
+            if state["multiplier"]:
+                if crop:
+                    crop = ',' + crop
+                i.extend(['-filter:v', f'setpts={state["multiplier"]}*PTS{crop}'])
+
+            elif crop:
+                i.extend(['-filter:v', crop])
 
         command_1.extend(['-f', f'{encoding.f}', '-passlogfile', f'{rand_passfilename}', '-pass', '1', 'NUL'])
         command_2.extend(['-f', f'{encoding.f}', '-passlogfile', f'{rand_passfilename}', '-pass', '2',
@@ -590,7 +603,7 @@ class GUI(QMainWindow):
 
     def remove_pass_file(self, passlogfile):
         for file in os.listdir('.'):
-            print((passlogfile))
+            # print((passlogfile))
             if file.startswith(str(passlogfile)) and file.endswith('.log'):
                 os.remove(file)
                 break
@@ -640,7 +653,7 @@ class GUI(QMainWindow):
             process.finished.connect(self._deplete_queue)
             process.done.connect(self.done)
             if passfile is not None:
-                process.done.connect(lambda f=passfile: self.remove_pass_file(f))
+                process.done.connect(lambda _, f=passfile: self.remove_pass_file(f))
             process.process_output.connect(self.append_to_tb)
 
             self._queue.append(process)
@@ -735,6 +748,7 @@ class GUI(QMainWindow):
             traceback.print_exc()
 
         self.mediaplayer.mediaPlayer.setMedia(QMediaContent(file))
+
         self.mediaplayer.playButton.setEnabled(True)
         self.mediaplayer.trim_btn.setDisabled(False)
         self.mediaplayer.trim2_btn.setDisabled(False)
@@ -742,7 +756,6 @@ class GUI(QMainWindow):
         self.mediaplayer.mediaPlayer.mediaStatusChanged.connect(self.set_end_time)
 
     def set_end_time(self):
-        print('Called')
         self.end_time.setText(self.get_player_time(self.mediaplayer.mediaPlayer.duration()))
 
     def keyPressEvent(self, event):
