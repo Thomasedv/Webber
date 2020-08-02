@@ -258,7 +258,13 @@ class GUI(QMainWindow):
             self._log.info(f'Current dest folder: {self._settings["destination"]}')
 
     def closeEvent(self, a0) -> None:
+        if self._active_prog is not None:
+            self.alert_message('Error!', 'Can not quit while conversion is in progress!',
+                               'Cancel converison before closing.')
+            a0.ignore()
+            return
         self.hide()
+        self.stop()
 
         self.mediaplayer.disconnect()
         self.mediaplayer.mediaPlayer.disconnect()
@@ -536,7 +542,7 @@ class GUI(QMainWindow):
 
             i.extend(['-i', f'{state["filename"]}'])
 
-            i.extend(['-map', '0:v:0', '-map', '0:s'])
+            i.extend(['-map', '0:v:0', '-map', '0:s?'])
 
             i.extend(encoding.commands.all)
 
@@ -546,8 +552,8 @@ class GUI(QMainWindow):
                 i.extend(encoding.commands.second)
 
             i.extend(['-b:v', f'{bitrate:.2f}k',
-                      '-maxrate', f'{bitrate * 2:.2f}k',
-                      '-bufsize', f'{bitrate * 3:.2f}k'
+                      '-maxrate', f'{bitrate:.2f}k',
+                      '-bufsize', f'{bitrate * 2:.2f}k'
                       ])
 
             if self.sound.isChecked() and p == 1:

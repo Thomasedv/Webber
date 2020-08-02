@@ -90,12 +90,19 @@ class Tweaker(QDialog):
             return
 
         key = dia.answer()
+
+        if not key.startswith('-'):
+            key = '-' + key
+
         if key in pass_dict:
             return
 
+        key_field = QLabel(key)
+        key_field.mouseDoubleClickEvent = lambda _, item=key_field: self.remove_item(_, item)
+
         value = QLineEdit('')
         value.textChanged.connect(partial(self.update_pair, pass_dict, key))
-        self.form.insertRow(idx, key, value)
+        self.form.insertRow(idx // 2 + 1, key_field, value)
         # TODO: Duplicate detection
 
     def update_pair(self, pair_map: dict, key: str, value: str):
@@ -104,8 +111,14 @@ class Tweaker(QDialog):
 
         pair_map.update({key: value})
 
+    def remove_item(self, _, item, mapping):
+        del mapping[item.text()]
+        self.form.removeRow(item)
+        self.adjustSize()
+
     def create_form(self):
         self.form = form = QFormLayout()
+
         for pass_name, pass_dict in zip(('All passes', 'First Pass', 'Second Pass'),
                                         (self.all_pass_pairs, self.first_pass_pairs, self.second_pass_pairs)):
 
@@ -114,9 +127,13 @@ class Tweaker(QDialog):
 
             form.addRow(QLabel(color_text(pass_name, color='limegreen')), add_btn)
             for key, value in pass_dict.items():
+                key_field = QLabel(key)
+
+                key_field.mouseDoubleClickEvent = lambda _, item=key_field, mapping=pass_dict: self.remove_item(_, item,
+                                                                                                                mapping)
                 value_field = QLineEdit(value)
                 value_field.textChanged.connect(partial(self.update_pair, pass_dict, key))
-                form.addRow(key, value_field)
+                form.addRow(key_field, value_field)
             form.addRow(self.ok_button, self.cancel_button)
 
         self.setLayout(form)

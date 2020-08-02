@@ -117,9 +117,9 @@ class Conversion(QThread):
 
                 output = color_text(f'\nWorking...\n', 'white')
                 output += f'Target name: {self.name}\n' \
-                          f'Target bitrate: {self.bitrate + "b" if self.bitrate is not None else "Nan"}\n' \
-                          f'Pass: {cur_pass}\n' \
-                          f'Progress: {percent}% \n'
+                    f'Target bitrate: {self.bitrate + "b" if self.bitrate is not None else "Nan"}\n' \
+                    f'Pass: {cur_pass}\n' \
+                    f'Progress: {percent}% \n'
 
                 output += f'Frame {items["frame"]} of {math.ceil(framerate * self.dur)}' + '\n' + f'Time: {items["time"]}'
 
@@ -127,8 +127,8 @@ class Conversion(QThread):
                 output = color_text(f'\nWorking...\n', 'white')
 
                 output += f'Target name: {self.name}\n' \
-                         f'Target bitrate: {self.bitrate + "b" if self.bitrate is not None else "Nan"}\n' \
-                         f'Pass: {cur_pass}\n'
+                    f'Target bitrate: {self.bitrate + "b" if self.bitrate is not None else "Nan"}\n' \
+                    f'Pass: {cur_pass}\n'
 
         except Exception as e:
             self._log.error(f'Failed formatting with error: {e.with_traceback()}')
