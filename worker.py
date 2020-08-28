@@ -71,22 +71,32 @@ class Conversion(QThread):
             worker.start('ffmpeg', commands)
             self._log.info(f'Starting process, pass {cur_pass}')
             worker.waitForStarted()
+            self.active_prog = worker
             while not worker.waitForFinished(500):
                 if self.abort:
                     self.queue.clear()
                     worker.kill()
+                    self.active_prog = None
                     self._log.info(f'Process terminated by user... '
                                    f'Process was active for {time.time() - start} seconds.')
                     self.done.emit(123)
                     return
+
             cur_pass += 1
             if worker.exitCode():
                 self._log.error(f'Process closed with error code {worker.exitCode()}. '
                                 f'Process was active for {time.time() - start} seconds.')
                 continue
+
         self.done.emit(worker.exitCode())
+        self.active_prog = None
         self._log.info(f'Finished all passes! Process was active for {time.time() - start} seconds.')
         self.current = None
+
+    def get_pid(self):
+        if self.active_prog is not None:
+            return self.active_prog.processId()
+        return None
 
     def out_stream(self, prog, cur_pass, framerate):
         data = prog.readAllStandardOutput().data()

@@ -6,6 +6,7 @@ import time
 import traceback
 from collections import deque
 
+import psutil
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtMultimedia import QMediaContent
@@ -27,6 +28,9 @@ class GUI(QMainWindow):
         self._debug = False
         self._active_prog = None
         self._resolution = None
+        self.is_paused = False
+        self.last_message = ''
+
         self._queue = deque()
         self._log = get_logger('Webber.GUI')
         self._fh = FileHandler()
@@ -41,6 +45,8 @@ class GUI(QMainWindow):
         self.open_tweaker = QShortcut(QKeySequence('Ctrl+E'), self)
         self.open_tweaker.activated.connect(self.tweak_options)
 
+        self.pause_shourtcut = QShortcut(QKeySequence('Ctrl+Space'), self)
+        self.pause_shourtcut.activated.connect(self.pause)
         self.worker = QThreadPool(self)
         self.worker.setMaxThreadCount(1)
 
@@ -73,6 +79,8 @@ class GUI(QMainWindow):
         2b. (Optional) Increase length-multiplier to slow down video. [Has limited use]
         
         4. Press convert to add the video to the conversion queue. Monitor progress here.
+        
+        The conversion can be paused and unpaused by pressing Ctrl+Space. 
         """)
         # Needed for Rich text
         self.tutorial_text = self.tutorial_text.replace('\n', '<br>')
@@ -286,6 +294,9 @@ class GUI(QMainWindow):
             if self._active_prog.isRunning():
                 self._active_prog.abort = True
 
+            self.is_paused = False
+            self.update_textbox()
+
     def get_player_time(self, override=None):
         if override is None:
             time_ms = self.mediaplayer.mediaPlayer.position()
@@ -487,8 +498,13 @@ class GUI(QMainWindow):
         tf = self.get_millisecond_time(state["end"]) / 1000
 
         duration = tf - t0  # In seconds!
+        if duration <= 0:
+            self.alert_message('Timestamps are incorrect!',
+                               'The end timestamp is before the start timestamp!', '')
+            raise InterruptedError('Too small target filesize, too low bitrate')
+
         # Assume 1kb = 1000 bit because it's ffmpeg standard?
-        bitrate = int(state["target_size"] * 8 * 1000 // duration)
+        bitrate = int(state["target_size"] * 8 * 1024 // duration)
 
         if self.sound.isChecked():
             bitrate -= 320
@@ -634,7 +650,8 @@ class GUI(QMainWindow):
     def start(self, *_):
         try:
             if self.out_name.text() in ('', ' ', '  '):
-                self.append_to_tb(color_text('INVALID FILENAME!'))
+                self.last_message = color_text('INVALID FILENAME!')
+                self.update_textbox()
                 return
 
             self.startbtn.setDisabled(True)
@@ -661,20 +678,40 @@ class GUI(QMainWindow):
             process.done.connect(self.done)
             if passfile is not None:
                 process.done.connect(lambda _, f=passfile: self.remove_pass_file(f))
-            process.process_output.connect(self.append_to_tb)
+            process.process_output.connect(self.update_last_message)
 
             self._queue.append(process)
             self._deplete_queue()
+            self.update_textbox()
         except:
             traceback.print_exc()
 
+    def pause(self):
+        process = self._active_prog
+
+        if process is not None:
+            pid = process.get_pid()
+            if pid is None:
+                return
+
+            p = psutil.Process(pid)
+            if self.is_paused:
+                p.resume()
+                self.is_paused = False
+            else:
+                p.suspend()
+                self.is_paused = True
+            self.update_textbox()
+
     def done(self, code):
         if code == 123:
-            self.append_to_tb(f'Process stopped by user!')
+            self.last_message = 'Process stopped by user!'
         elif code:
-            self.append_to_tb(f'Process encountered an error with code {code}.')
+            self.last_message = f'Process encountered an error with code {code}.'
         else:
-            self.append_to_tb('Finished successfully!')
+            self.last_message = 'Finished successfully!'
+        self.is_paused = False
+        self.update_textbox()
 
     def _deplete_queue(self):
         if self._active_prog is not None and self._active_prog.isRunning():
@@ -685,36 +722,24 @@ class GUI(QMainWindow):
             self._active_prog.start()
         else:
             self._active_prog = None
+            self.is_paused = False
 
     def start_button_timer(self, state):
         if not state:
             self.timer.start(1000)
 
-    def append_to_tb(self, text):
-        if not text:
-            return
+    def update_last_message(self, text):
+        self.last_message = text
+        self.update_textbox()
 
-        self.textbox.setText(text)
+    def update_textbox(self):
+        self.textbox.setText(self.last_message)
+        if self.is_paused:
+            self.textbox.append(color_text('\nCONVERSION PAUSED\n') + 'Press Ctrl+Space to Resume!\n')
 
         if self._queue:
             self.textbox.append(color_text('\n\nIn queue:\n', color='white'))
             self.textbox.append('\n'.join([f'{idx}. {i.name}' for idx, i in enumerate(self._queue, 1)])+'\n\n')
-
-            if self._debug:
-                if self._active_prog is not None:
-                    self.textbox.append('\n\n')
-                    self.textbox.append(f'Current pass:\n{self._active_prog.current}')
-                    self.textbox.append('\n')
-                    for line in self._active_prog.queue:
-                        self.textbox.append(f'{" ".join(line)}\n\n')
-
-                self.textbox.append('\n\n')
-                if self._queue:
-                    for program in self._queue:
-                        self.textbox.append(f'{program.name}')
-                        for line in program.queue:
-                            self.textbox.append('\n')
-                            self.textbox.append(f'{" ".join(line)}\n')
 
         self.textbox.append('<br><br>'+self.tutorial_text)
 
