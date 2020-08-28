@@ -487,7 +487,8 @@ class GUI(QMainWindow):
         tf = self.get_millisecond_time(state["end"]) / 1000
 
         duration = tf - t0  # In seconds!
-        bitrate = int(state["target_size"] * 8 * 1024 // duration)
+        # Assume 1kb = 1000 bit because it's ffmpeg standard?
+        bitrate = int(state["target_size"] * 8 * 1000 // duration)
 
         if self.sound.isChecked():
             bitrate -= 320

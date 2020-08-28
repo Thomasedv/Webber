@@ -23,7 +23,6 @@ webm_params = passes([
     '-auto-alt-ref', '6',
     '-lag-in-frames', '25',
     '-g', '120',
-    '-crf', '30',
     '-pix_fmt', 'yuv420p'
 ], [
     '-cpu-used', '1'
@@ -39,14 +38,24 @@ av1_params = passes([
     '-threads', '12',
     '-pix_fmt', 'yuv420p10le',
     '-row-mt', '1',
-    # '-auto-alt-ref', '1',
+    '-auto-alt-ref', '1',
     '-lag-in-frames', '25',
     '-strict', 'experimental',
     '-static-thresh', '0',
     '-frame-parallel', '0',
     '-g', '120',
     '-aq-mode', '-1',
-    '-arnr-strength', '-1'
+    '-arnr-strength', '-1',
+    '-enable-cdef', '-1',
+    '-enable-global-motion', '-1',
+    '-enable-intrabc', '-1',
+    '-enable-restoration', '-1',
+    '-enable-palette', '-1',
+    '-enable-flip-idtx', '-1',
+    '-enable-ref-frame-mvs', '-1',
+    '-enable-dual-filter', '-1'
+
+
 
 ], [
     '-cpu-used', '8',
