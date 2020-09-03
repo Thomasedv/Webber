@@ -1,10 +1,9 @@
-import sys
 import traceback
 
-from PyQt5.QtMultimediaWidgets import QVideoWidget, QGraphicsVideoItem
-from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtMultimediaWidgets import QGraphicsVideoItem
+from PyQt5.QtWidgets import *
 
 
 class GraphicsView(QGraphicsView):
@@ -44,6 +43,10 @@ class VideoOverlay(QWidget):
         self.setStyleSheet('background: transparent;')
         self.current = QRect()
 
+    def reset(self):
+        self.begin = QPoint()
+        self.end = QPoint()
+
     def get_cropped_area(self):
         if not self.mediaPlayer.media().isNull():
             if self.begin == self.end == QPoint():
@@ -52,8 +55,9 @@ class VideoOverlay(QWidget):
             vid = self.video.boundingRect().toRect()
             vid: QRect()
             a = QRect(self.begin, self.end)
-            sel_tlx = a.x() - vid.topLeft().x() if a.x() - vid.topLeft().x() >= vid.topLeft().x() else 0
-            sel_tly = a.y() - vid.topLeft().y() if a.y() - vid.topLeft().y() >= vid.topLeft().y() else 0
+            # sel_tlx = a.x() - vid.topLeft().x() if a.x() - vid.topLeft().x() >= vid.topLeft().x() else 0
+            # sel_tly = a.y() - vid.topLeft().y() if a.y() - vid.topLeft().y() >= vid.topLeft().y() else 0
+
             # sel_blx = sel_tlx + a.width() if sel_tlx + a.width() <= vid.width() else vid.width()
             # sel_bly = sel_tly + a.height() if sel_tly + a.height() <= vid.height() else vid.height()
 
@@ -63,7 +67,9 @@ class VideoOverlay(QWidget):
             # print(f'vid br y {vid.bottomRight().y()}')
             # print(f'tl x {sel_tlx}\ntl y {sel_tly}'
             #       f'\nbl x {sel_blx}\nbl y {sel_bly}')
-            return sel_tlx / vid.width(), sel_tly / vid.height(), a.width() / vid.width(), a.height() / vid.height()
+
+            return a.x(), a.y(), a.width() - 1, a.height() - 1
+            # return sel_tlx / vid.width(), sel_tly / vid.height(), a.width() / vid.width(), a.height() / vid.height()
         else:
             return None
 
@@ -102,8 +108,25 @@ class VideoOverlay(QWidget):
         if self.current == QRect():
             self.qp.end()
             return
+
         self.qp.fillRect(self.current, br)
-        self.qp.end()
+
+        selection = QRect(self.begin, self.end)
+        if self.size_condition(selection):
+            self.qp.setClipRect(self.current)
+            brush = QBrush(QColor(250, 250, 250))
+            self.qp.setBrush(brush)
+            self.qp.setPen(Qt.SolidLine)
+            font = QFont()
+            font.setPixelSize(int(20 * (self.height() / 720)))
+
+            self.qp.setFont(font)
+            path = QPainterPath()
+            path.addText(selection.x() + 5, selection.y() + selection.height() - 15, font,
+                         f'{selection.width() - 1}x{selection.height() - 1}')
+            self.qp.drawPath(path)
+            self.qp.end()
+
         # super(Player, self).paintEvent(event)
 
     def mousePressEvent(self, event):
@@ -112,20 +135,27 @@ class VideoOverlay(QWidget):
             # pos = cursor.pos()
             # print(pos)
             self.begin = event.pos()
-            self.end = event.pos()
+            self.end = self.get_end(event)
             self.update()
+
+    def get_end(self, event):
+        pos = event.pos()
+        return QPoint(min(pos.x(), self.width()), min(pos.y(), self.height()))
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.RightButton:
             # print(event.pos())
-            self.end = event.pos()
+            self.end = self.get_end(event)
             self.update()
+
+    def size_condition(self, selection):
+        return selection.width() > 80 and selection.height() > 80
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.RightButton:
-            self.end = event.pos()
+            self.end = self.get_end(event)
             sel = QRect(self.begin, self.end)
-            if sel.width() < 10 or sel.height() < 10:
+            if not self.size_condition(sel):
                 self.end = QPoint()
                 self.begin = QPoint()
             self.update()

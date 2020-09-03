@@ -596,10 +596,11 @@ class GUI(QMainWindow):
                 command_1.append('-an')
 
             if state["crop_area"] is not None:
-                x = int(int(self._resolution[0]) * state["crop_area"][0])
-                y = int(int(self._resolution[1]) * state["crop_area"][1])
-                w = int(int(self._resolution[0]) * state["crop_area"][2])
-                h = int(int(self._resolution[1]) * state["crop_area"][3])
+                x = state["crop_area"][0]
+                y = state["crop_area"][1]
+                # y = max(int(self._resolution[1]) - state["crop_area"][1], 0)
+                w = state["crop_area"][2]
+                h = state["crop_area"][3]
                 crop = f'crop={w}:{h}:{x}:{y}'
             else:
                 crop = ''
@@ -773,7 +774,10 @@ class GUI(QMainWindow):
         p.waitForStarted()
         p.waitForFinished()
         print(p.exitCode())
+        self.mediaplayer.overlay.reset()
         self._resolution = p.readAll().data().decode('utf-8', 'replace').strip().split('x')
+        self.mediaplayer.videoWidget.setSize(QSizeF(float(self._resolution[0]), float(self._resolution[1])))
+
         try:
             self._log.debug(f'Resolution of video is {self._resolution[0]}x{self._resolution[1]}')
         except:
@@ -786,6 +790,7 @@ class GUI(QMainWindow):
         self.mediaplayer.trim2_btn.setDisabled(False)
         self.current_file.setText(str(file.toLocalFile()))
         self.mediaplayer.mediaPlayer.mediaStatusChanged.connect(self.set_end_time)
+        self.mediaplayer.resizeEvent(None)
 
     def set_end_time(self):
         self.end_time.setText(self.get_player_time(self.mediaplayer.mediaPlayer.duration()))
