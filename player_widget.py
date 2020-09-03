@@ -2,16 +2,59 @@ import sys
 import traceback
 import typing
 
-from PyQt5.QtCore import Qt, QSizeF
+from PyQt5.QtCore import Qt, QSizeF, QPoint
 from PyQt5.QtGui import QShowEvent, QPainter
 from PyQt5.QtMultimedia import QMediaPlayer
 from PyQt5.QtMultimediaWidgets import QGraphicsVideoItem
 from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel,
-                             QSizePolicy, QStyle, QVBoxLayout, QGraphicsScene, QProxyStyle)
+                             QSizePolicy, QStyle, QVBoxLayout, QGraphicsScene, QProxyStyle, QGraphicsProxyWidget)
 from PyQt5.QtWidgets import QWidget, QPushButton
 
 from relay_widgets import RelayPushButton, RelaySlider
 from video import VideoOverlay, GraphicsView
+
+
+class GraphicsScene(QGraphicsScene):
+    def __init__(self, *args):
+        super(GraphicsScene, self).__init__(*args)
+        # Flag toggled when crop area is started outside overlay.
+        self._started_outside = False
+
+    def mousePressEvent(self, event) -> None:
+        p = event.scenePos()
+
+        # Check if outside and right clicked
+        if any([p.x() < 0, p.y() < 0]) and event.buttons() == Qt.RightButton:
+            for i in self.items():
+                # event: QGraphicsSceneMouseEvent
+                if isinstance(i, QGraphicsProxyWidget):
+                    i: QGraphicsProxyWidget
+                    # set new start
+                    new_p = QPoint(p.x() * (p.x() >= 0), p.y() * (p.y() >= 0))
+                    # Call Overlay widget with override position.
+                    i.widget().mousePressEvent(event, new_p)
+                    self._started_outside = True
+                    break
+        else:
+            super(GraphicsScene, self).mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        if self._started_outside:
+            # When started outside, needs to manually call mouseMoveEvent of overlay.
+            p = event.scenePos()
+            # Ensure mouse is moving over overlay
+            if not any([p.x() < 0, p.y() < 0]):
+                for i in self.items():
+                    if isinstance(i, QGraphicsProxyWidget):
+                        i.widget().mouseMoveEvent(event, p)
+                        break
+        else:
+            super(GraphicsScene, self).mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:
+        # Disable flag.
+        self._started_outside = False
+        super(GraphicsScene, self).mouseReleaseEvent(event)
 
 
 class VideoWindow(QWidget):
@@ -21,8 +64,7 @@ class VideoWindow(QWidget):
 
         self.mediaPlayer = QMediaPlayer(self, QMediaPlayer.VideoSurface)
 
-        self._scene = QGraphicsScene(self)
-
+        self._scene = GraphicsScene(self)
         self.videoWidget = QGraphicsVideoItem()
         # TODO: Set to video or screen resolution?
         self.videoWidget.setSize(QSizeF(2560, 1440))

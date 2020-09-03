@@ -52,21 +52,7 @@ class VideoOverlay(QWidget):
             if self.begin == self.end == QPoint():
                 return None
 
-            vid = self.video.boundingRect().toRect()
-            vid: QRect()
             a = QRect(self.begin, self.end)
-            # sel_tlx = a.x() - vid.topLeft().x() if a.x() - vid.topLeft().x() >= vid.topLeft().x() else 0
-            # sel_tly = a.y() - vid.topLeft().y() if a.y() - vid.topLeft().y() >= vid.topLeft().y() else 0
-
-            # sel_blx = sel_tlx + a.width() if sel_tlx + a.width() <= vid.width() else vid.width()
-            # sel_bly = sel_tly + a.height() if sel_tly + a.height() <= vid.height() else vid.height()
-
-            # print(f'-----------\n'
-            #       f'Brekt {vid}\n'
-            #       f'vid br x {vid.bottomRight().x()}')
-            # print(f'vid br y {vid.bottomRight().y()}')
-            # print(f'tl x {sel_tlx}\ntl y {sel_tly}'
-            #       f'\nbl x {sel_blx}\nbl y {sel_bly}')
 
             return a.x(), a.y(), a.width() - 1, a.height() - 1
             # return sel_tlx / vid.width(), sel_tly / vid.height(), a.width() / vid.width(), a.height() / vid.height()
@@ -93,59 +79,62 @@ class VideoOverlay(QWidget):
                 traceback.print_exc()
 
         # self.qp.setClipRegion()
-
+        # TODO: Cleanup code in file, refactor
         return QRect()
 
     def paintEvent(self, event):
         super(VideoOverlay, self).paintEvent(event)
 
         # if self.current != QRect:
-        br = QBrush(QColor(250, 250, 250, 70))
+        grey_brush = QBrush(QColor(250, 250, 250, 70))
         self.qp.begin(self)
-        self.qp.setBrush(br)
+        self.qp.setBrush(grey_brush)
         self.qp.setPen(Qt.NoPen)
         self.current = self.gen_square()
         if self.current == QRect():
             self.qp.end()
             return
 
-        self.qp.fillRect(self.current, br)
+        self.qp.fillRect(self.current, grey_brush)
 
         selection = QRect(self.begin, self.end)
+
         if self.size_condition(selection):
             self.qp.setClipRect(self.current)
-            brush = QBrush(QColor(250, 250, 250))
-            self.qp.setBrush(brush)
+            white_brush = QBrush(QColor(250, 250, 250))
+            self.qp.setBrush(white_brush)
             self.qp.setPen(Qt.SolidLine)
+
             font = QFont()
             font.setPixelSize(int(20 * (self.height() / 720)))
-
             self.qp.setFont(font)
+
             path = QPainterPath()
             path.addText(selection.x() + 5, selection.y() + selection.height() - 15, font,
                          f'{selection.width() - 1}x{selection.height() - 1}')
             self.qp.drawPath(path)
             self.qp.end()
 
-        # super(Player, self).paintEvent(event)
-
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event, override_pos=None):
         if event.button() == Qt.RightButton:
-            # cursor = QCursor()
-            # pos = cursor.pos()
-            # print(pos)
-            self.begin = event.pos()
+            if override_pos is not None:
+                self.begin = override_pos
+            else:
+                self.begin = event.pos()
             self.end = self.get_end(event)
             self.update()
 
-    def get_end(self, event):
-        pos = event.pos()
+    def get_end(self, event, override=None):
+        if override is not None:
+            pos = override
+        else:
+            pos = event.pos()
         return QPoint(min(pos.x(), self.width()), min(pos.y(), self.height()))
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event, override=None):
+        # print('moved vid')
         if event.buttons() == Qt.RightButton:
-            # print(event.pos())
-            self.end = self.get_end(event)
+            self.end = self.get_end(event, override)
             self.update()
 
     def size_condition(self, selection):
@@ -154,6 +143,7 @@ class VideoOverlay(QWidget):
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.RightButton:
             self.end = self.get_end(event)
+
             sel = QRect(self.begin, self.end)
             if not self.size_condition(sel):
                 self.end = QPoint()
