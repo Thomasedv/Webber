@@ -46,16 +46,6 @@ av1_params = passes([
     '-g', '120',
     '-aq-mode', '-1',
     '-arnr-strength', '-1',
-    '-enable-cdef', '-1',
-    '-enable-global-motion', '-1',
-    '-enable-intrabc', '-1',
-    '-enable-restoration', '-1',
-    '-enable-palette', '-1',
-    '-enable-flip-idtx', '-1',
-    '-enable-ref-frame-mvs', '-1',
-    '-enable-dual-filter', '-1'
-
-
 
 ], [
     '-cpu-used', '8',
