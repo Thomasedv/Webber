@@ -18,6 +18,8 @@ from utils import get_logger, color_text, FileHandler, get_stylesheet, find_file
 from worker import Conversion
 
 
+# TODO: Check for ffmpeg! Warn user.
+
 class GUI(QMainWindow):
     def __init__(self):
         super(GUI, self).__init__()
@@ -30,6 +32,7 @@ class GUI(QMainWindow):
         self._resolution = None
         self.is_paused = False
         self.last_message = ''
+        self.audio_bitrate = 320
 
         self._queue = deque()
         self._log = get_logger('Webber.GUI')
@@ -126,6 +129,7 @@ class GUI(QMainWindow):
         self.timer.timeout.connect(lambda: self.startbtn.setDisabled(False))
 
         self.cancelbtn = QPushButton('Cancel')
+        self.cancelbtn.setFocusPolicy(Qt.NoFocus)
         self.cancelbtn.clicked.connect(self.stop)
         self.cancelbtn.setDisabled(True)
 
@@ -240,8 +244,12 @@ class GUI(QMainWindow):
     def tweak_options(self):
         spec = self.filetype.currentText()
         t = Tweaker(spec)
+        extra_options = {'-audio bitrate:': self.audio_bitrate}
+        t.extend(extra_options)
         if t.exec() == QDialog.Accepted:
             format_spec[spec] = t.get_encoding()
+            extra_results = t.get_extended_results()
+            self.audio_bitrate = float(extra_results['-audio bitrate:'])
 
     def validate_settings(self):
         # TODO: Check for errors here
@@ -476,6 +484,7 @@ class GUI(QMainWindow):
         Target size: {state['target_size']}
         Target filetype: {state["filetype"]}
         Length multiplier: {state["multiplier"]}
+        Audio bitrate: {self.audio_bitrate}
         """))
 
         return state
@@ -504,16 +513,16 @@ class GUI(QMainWindow):
             raise InterruptedError('Too small target filesize, too low bitrate')
 
         # Assume 1kb = 1000 bit because it's ffmpeg standard?
-        bitrate = int(state["target_size"] * 8 * 1024 // duration)
+        video_bitrate = int(state["target_size"] * 8 * 1024 // duration)
 
         if self.sound.isChecked():
-            bitrate -= 320
+            video_bitrate -= self.audio_bitrateavclear
 
-        if bitrate < 1:
+        if video_bitrate < 1:
             self.alert_message('Target size too small!',
                                'The video is too long for the target bitrate!', '')
             raise InterruptedError('Too small target filesize, too low bitrate')
-        elif bitrate < 512:
+        elif video_bitrate < 512:
             result = self.alert_message('Warning!',
                                         'The current bitrate is very low, and will probably not work well.',
                                         'Do you want to stop encoding?',
@@ -523,7 +532,7 @@ class GUI(QMainWindow):
 
         self._log.debug(textwrap.dedent(f"""
                             Working dir: {os.getcwd()}
-                            Target bitrate: {bitrate} kbps
+                            Target bitrate: {video_bitrate} kbps
                             Target destination: {out_path}
                             Start: {state['ts_start']} ({t0:.3f} seconds)
                             Start: {state['ts_end']} ({tf:.3f} seconds)
@@ -568,17 +577,17 @@ class GUI(QMainWindow):
             elif p == 1:
                 i.extend(encoding.commands.second)
 
-            i.extend(['-b:v', f'{bitrate:.2f}k',
-                      '-maxrate', f'{bitrate:.2f}k',
-                      '-bufsize', f'{bitrate * 2:.2f}k'
+            i.extend(['-b:v', f'{video_bitrate:.2f}k',
+                      '-maxrate', f'{video_bitrate:.2f}k',
+                      '-bufsize', f'{video_bitrate * 4:.2f}k'
                       ])
 
             if self.sound.isChecked() and p == 1:
                 if state['merge_audio']:
                     command_2.extend(['-filter_complex', '[0:a:0][0:a:1]amerge=inputs=2[a]', '-map', "[a]",
-                                      '-c:a', 'libopus', '-ac', '2', '-b:a', '320k'])
+                                      '-c:a', 'libopus', '-ac', '2', '-b:a', f'{self.audio_bitrate}k'])
                 else:
-                    command_2.extend(['-map', '0:a?', '-c:a', 'libopus', '-b:a', '320k'])
+                    command_2.extend(['-map', '0:a?', '-c:a', 'libopus', '-b:a', f'{self.audio_bitrate}k'])
 
                 if float(state["multiplier"]) != 1 and not checked:
                     result = self.alert_message('Warning!',

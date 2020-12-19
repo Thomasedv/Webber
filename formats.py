@@ -1,7 +1,7 @@
 from collections import namedtuple
 from functools import partial
 
-from PyQt5.QtWidgets import QDialog, QApplication, QFormLayout, QLabel, QLineEdit, QPushButton
+from PyQt5.QtWidgets import QDialog, QApplication, QFormLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout
 from more_itertools import consume
 from more_itertools.recipes import grouper
 
@@ -14,16 +14,20 @@ format_spec = {}
 
 webm_params = passes([
     '-c:v', 'libvpx-vp9',
-    '-tile-columns', '2',
-    '-tile-rows', '1',
+    '-tile-columns', '1',
+    '-tile-rows', '0',
     '-threads', '12',
     '-row-mt', '1',
+    '-aq-mode', '2',
+    '-arnr-maxframes', '15',
+    '-arnr-strength', '3',
     '-static-thresh', '0',
     '-frame-parallel', '0',
+    '-tune-content', 'screen',
     '-auto-alt-ref', '6',
     '-lag-in-frames', '25',
-    '-g', '120',
-    '-pix_fmt', 'yuv420p'
+    '-g', '8000',
+    '-pix_fmt', 'yuv420p10le'
 ], [
     '-cpu-used', '1'
 ], [
@@ -34,7 +38,7 @@ format_spec['VP9'] = encoding('webm', 'webm', webm_params)
 
 av1_params = passes([
     '-c:v', 'libaom-av1',
-    '-tiles', '2x2',
+    '-tiles', '0x0',
     '-threads', '12',
     '-pix_fmt', 'yuv420p10le',
     '-row-mt', '1',
@@ -43,9 +47,11 @@ av1_params = passes([
     '-strict', 'experimental',
     '-static-thresh', '0',
     '-frame-parallel', '0',
-    '-g', '120',
-    '-aq-mode', '-1',
-    '-arnr-strength', '-1',
+    '-g', '99999',
+    '-aq-mode', '2',
+    '-tune-content', 'screen',
+    '-arnr-maxframes', '15',
+    '-arnr-strength', '6',
 
 ], [
     '-cpu-used', '8',
@@ -82,6 +88,21 @@ class Tweaker(QDialog):
 
         self.create_form()
 
+    def extend(self, items: dict):
+        self._extra_dict = items.copy()
+        form = QFormLayout()
+        form.addRow(QLabel(color_text('Extra Options', color='limegreen')), None)
+        for key, value in items.items():
+            key_field = QLabel(key)
+            value_field = QLineEdit(str(value))
+            value_field.textChanged.connect(partial(self.update_pair, self._extra_dict, key))
+            form.addRow(key_field, value_field)
+        self.hbox.addLayout(form)
+
+    def get_extended_results(self):
+        print(self._extra_dict)
+        return self._extra_dict
+
     def add_row(self, pass_dict: dict):
         idx = self.form.indexOf(self.sender())
         dia = Dialog(self, 'Pick a parameter!', 'Select the name of the option to add!')
@@ -116,6 +137,7 @@ class Tweaker(QDialog):
         self.adjustSize()
 
     def create_form(self):
+        self.hbox = QHBoxLayout()
         self.form = form = QFormLayout()
 
         for pass_name, pass_dict in zip(('All passes', 'First Pass', 'Second Pass'),
@@ -135,7 +157,8 @@ class Tweaker(QDialog):
                 form.addRow(key_field, value_field)
             form.addRow(self.ok_button, self.cancel_button)
 
-        self.setLayout(form)
+        self.hbox.addLayout(form)
+        self.setLayout(self.hbox)
 
     def get_encoding(self):
         for pass_list, pass_pair in zip([self.all_pass, self.first_pass, self.second_pass],
